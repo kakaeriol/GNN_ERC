@@ -1,1 +1,6 @@
 data/
+
+baseline/DialogueGCN-mianzhang/dgcn/model/__pycache__/
+baseline/DialogueGCN/__pycache__/
+baseline/DialogueGCN-mianzhang/dgcn/model/__pycache__/*
+baseline/.ipynb_checkpoints/

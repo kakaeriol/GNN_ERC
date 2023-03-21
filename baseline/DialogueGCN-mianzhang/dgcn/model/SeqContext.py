@@ -23,7 +23,10 @@ class SeqContext(nn.Module):
             batch_first=True,
             enforce_sorted=False
         )
-        rnn_out, (_, _) = self.rnn(packed, None)
+        try:
+            rnn_out, (_, _) = self.rnn(packed, None)
+        except:
+            rnn_out, _ = self.rnn(packed, None)
         rnn_out, _ = pad_packed_sequence(rnn_out, batch_first=True)
 
         return rnn_out
