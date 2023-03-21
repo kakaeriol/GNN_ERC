@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import dgl
 
 from .SeqContext import SeqContext
 from .EdgeAtt import EdgeAtt
@@ -44,8 +45,14 @@ class DialogueGCN(nn.Module):
         features, edge_index, edge_norm, edge_type, edge_index_lengths = batch_graphify(
             node_features, data["text_len_tensor"], data["speaker_tensor"], self.wp, self.wf,
             self.edge_type_to_idx, self.edge_att, self.device)
+        
+        # create a DGLGraph heres
+        # TODO 
+        u = edge_index[0]
+        v = edge_index[1]
+        g = dgl.DGLGraph(u, v)
         # log.info("fts size: {}".format(features.shape))
-        graph_out = self.gcn(features, edge_index, edge_norm, edge_type)
+        graph_out = self.gcn(g, features, edge_index, edge_norm, edge_type)
         # log.info("edge_index_lengths: {}".format(edge_index_lengths.flatten().sum()))
 
         return graph_out, features
