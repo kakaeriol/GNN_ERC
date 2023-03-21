@@ -1,2 +1,2 @@
 # GNN_ERC
-This for GNN project team 
+This for aaGNN project team 
