@@ -3,13 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pad_sequence
-from torch_geometric.nn import RGCNConv, GraphConv
+# from torch_geometric.nn import RGCNConv, GraphConv
 from torch_geometric.nn import GraphConv
 import numpy as np, itertools, random, copy, math
 
-# For methods and models related to DialogueGCN jump to line 516
-# NP adding
-##--
 import math
 import torch
 import torch.nn as nn
@@ -156,10 +153,6 @@ class RGCNConv(MessagePassing):
             self.__class__.__name__, self.in_channels, self.out_channels,
             self.num_relations)
 
-
-
-
-#
 class MaskedNLLLoss(nn.Module):
 
     def __init__(self, weight=None):
