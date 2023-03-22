@@ -50,9 +50,13 @@ class DialogueGCN(nn.Module):
         # TODO 
         u = edge_index[0]
         v = edge_index[1]
-        g = dgl.DGLGraph(u, v)
+        # log.info("u, v : {}, {}, {}, {}, {}, {}".format(u.shape, v.shape, u.dtype, v.dtype, type(u), type(v[0])))
+        self.g = dgl.DGLGraph((u, v) )
         # log.info("fts size: {}".format(features.shape))
-        graph_out = self.gcn(g, features, edge_index, edge_norm, edge_type)
+        graph_out = self.gcn(self.g, features, edge_index, edge_norm, edge_type)
+        # END TODO
+        # graph_out = self.gcn(features, edge_index, edge_norm, edge_type)
+
         # log.info("edge_index_lengths: {}".format(edge_index_lengths.flatten().sum()))
 
         return graph_out, features
