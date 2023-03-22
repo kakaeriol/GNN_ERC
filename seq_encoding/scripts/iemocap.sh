@@ -13,6 +13,6 @@ if [ "${do_what}" == "preprocess" ]; then
       --dataset=${dataset} > log/preprocess.${dataset}
 elif [ "${do_what}" == "train" ]; then
   python -u train.py --data=${ckpt_dir}/data.pkl \
-      --from_begin --device=cuda:1 --epochs=50 --drop_rate=$l_r \
-      --weight_decay=$weight_decay --batch_size=$bs --learning_rate=$l_r > log/train.${dataset}.drop${d_rate}.wd${weight_decay}.lr${l_r}.bs${bs}
+      --from_begin --device=cuda:1 --epochs=10 --drop_rate=$l_r \
+      --weight_decay=$weight_decay --batch_size=$bs --learning_rate=$l_r > log/transformerencode/train.${dataset}.drop${d_rate}.wd${weight_decay}.lr${l_r}.bs${bs}
 fi

@@ -2,8 +2,9 @@ import math
 import random
 
 import torch
+import dgcn
 
-
+log = dgcn.utils.get_logger()
 class Dataset:
 
     def __init__(self, samples, batch_size):
@@ -28,6 +29,7 @@ class Dataset:
     def padding(self, samples):
         batch_size = len(samples)
         text_len_tensor = torch.tensor([len(s.text) for s in samples]).long()
+        # log.info('sample; {}'.format(samples[0].text))
         mx = torch.max(text_len_tensor).item()
         text_tensor = torch.zeros((batch_size, mx, 100))
         speaker_tensor = torch.zeros((batch_size, mx)).long()

@@ -29,7 +29,7 @@ class GCN(nn.Module):
 
     #     return x
 
-    def forward(self,g, node_features, edge_index, edge_norm, edge_type):
+    def forward(self,node_features, edge_index, edge_norm, edge_type):
 
         # log.info('norm samples = {}, {}, {}'.format(edge_norm[:10], edge_norm.shape, edge_index.shape))
         # create a DGLGraph heres

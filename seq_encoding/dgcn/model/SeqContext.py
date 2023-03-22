@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-
+from .TransformerEncoder import DialogueTransformer
 
 class SeqContext(nn.Module):
 
@@ -19,8 +19,9 @@ class SeqContext(nn.Module):
             
             
         elif self.model_type == 'transformer':
-            self.transformer_layer = nn.TransformerEncoderLayer(d_model=self.input_size, nhead=8, dim_feedforward=self.hidden_dim // 2, dropout=args.drop_rate, activation='relu')
-            self.transformer_encoder = nn.TransformerEncoder(self.transformer_layer, num_layers=2)
+            # self.transformer_layer = nn.TransformerEncoderLayer(d_model=self.input_size, nhead=4, dim_feedforward=self.hidden_dim, dropout=args.drop_rate, activation='relu')
+            # self.transformer_encoder = nn.TransformerEncoder(self.transformer_layer, num_layers=2)
+            self.transformer_encoder = DialogueTransformer(self.input_size, self.hidden_dim, 1, 4, self.hidden_dim, args.drop_rate)
 
     def forward(self, text_len_tensor, text_tensor):
         if self.model_type in ("lstm", "gru"):
