@@ -75,7 +75,6 @@ def train_or_eval_model(model, loss_function, dataloader, epoch, optimizer=None,
         # import ipdb;ipdb.set_trace()
         textf, qmask, umask, label = [d.cuda() for d in data[:-1]] if cuda else data[:-1]
         max_sequence_len.append(textf.size(0))
-
         log_prob, alpha, alpha_f, alpha_b, _ = model(textf, qmask, umask)  # seq_len, batch, n_classes
         lp_ = log_prob.transpose(0, 1).contiguous().view(-1, log_prob.size()[2])  # batch*seq_len, n_classes
         labels_ = label.view(-1)  # batch*seq_len
@@ -256,11 +255,10 @@ if __name__ == '__main__':
     D_a = 100
     graph_h = 100
     kernel_sizes = [3, 4, 5]
-    glv_pretrained = np.load(open('dailydialog/glv_embedding_matrix2', 'rb'))
-    vocab_size, embedding_dim = glv_pretrained.shape
     if args.graph_model:
         seed_everything()
-
+        glv_pretrained = np.load(open('DailyDialogue_features/glv_embedding_matrix2', 'rb'),allow_pickle=True)
+        vocab_size, embedding_dim = glv_pretrained.shape
         model = DialogueGCN_DailyModel(args.base_model,
                                        D_m, D_g, D_p, D_e, D_h, D_a, graph_h,
                                        n_speakers=2,
@@ -340,10 +338,10 @@ if __name__ == '__main__':
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.l2)
 
     if args.class_weight:
-        train_loader, valid_loader, test_loader = get_DailyDialogue_loaders('dailydialog/daily_dialogue2.pkl',
+        train_loader, valid_loader, test_loader = get_DailyDialogue_loaders('DailyDialogue_features/daily_dialogue2.pkl',
                                                                             batch_size=batch_size, num_workers=0)
     else:
-        train_loader, valid_loader, test_loader = get_DailyDialogue_loaders('dailydialog/daily_dialogue2.pkl',
+        train_loader, valid_loader, test_loader = get_DailyDialogue_loaders('DailyDialogue_features/daily_dialogue2.pkl',
                                                                             batch_size=batch_size, num_workers=0)
     best_fscore, best_loss, best_label, best_pred, best_mask = None, None, None, None, None
     all_fscore, all_acc, all_loss = [], [], []
@@ -380,11 +378,9 @@ if __name__ == '__main__':
             writer.add_scalar('test: accuracy/loss', test_acc / test_loss, e)
             writer.add_scalar('train: accuracy/loss', train_acc / train_loss, e)
 
-        print(
-            'epoch: {}, train_loss: {}, train_acc: {}, train_fscore: {}, train_precision: {}, train_recall: {}, valid_loss: {}, valid_acc: {}, valid_fscore: {}, valid_precision: {}, valid_recall: {}, test_loss: {}, test_acc: {}, test_fscore: {}, test_precision: {}, test_recall: {}, time: {} sec'. \
-            format(e + 1, train_loss, train_acc, train_fscore, train_precision, train_recall, valid_loss, valid_acc,
-                   valid_fscore, valid_precision, valid_recall, test_loss, test_acc, test_fscore, test_precision,
-                   test_recall, round(time.time() - start_time, 2)))
+        print('epoch: {}, train_loss: {}, train_acc: {}, train_fscore: {}, valid_loss: {}, valid_acc: {}, valid_fscore: {}, test_loss: {}, test_acc: {}, test_fscore: {}, time: {} sec'.\
+                format(e+1, train_loss, train_acc, train_fscore, valid_loss, valid_acc, valid_fscore, test_loss, test_acc, test_fscore, round(time.time()-start_time, 2)))
+    
 
     if args.tensorboard:
         writer.close()
@@ -392,5 +388,3 @@ if __name__ == '__main__':
     print('Test performance..')
     index_max = all_fscore.index(max(all_fscore))
     print('F-Score:', all_fscore[index_max])
-    print('Precision:', all_precision[index_max])
-    print('Recall:', all_recall[index_max])
