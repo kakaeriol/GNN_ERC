@@ -65,39 +65,57 @@ class AVECDataset(Dataset):
 
 
 class MELDDataset(Dataset):
+    train_speakers = set()
+    def __init__(self, split, path, classify):
 
-    def __init__(self, path, classify, train=True):
-        self.videoIDs, self.videoSpeakers, self.videoLabelsEmotion, self.videoText,\
-        self.videoAudio, self.videoSentence, self.trainVid,\
-        self.testVid, self.videoLabelsSentiment = pickle.load(open(path, 'rb'))
+        self.Speakers, self.Features, _, \
+        self.ActLabels, self.EmotionLabels, self.SentimentLabels, self.trainId, self.testId, self.validId = pickle.load(open(path, 'rb'))
 
         if classify == 'emotion':
-            self.videoLabels = self.videoLabelsEmotion
+            self.videoLabels = self.EmotionLabels
         else:
-            self.videoLabels = self.videoLabelsSentiment
-        '''
-        label index mapping = {'neutral': 0, 'surprise': 1, 'fear': 2, 'sadness': 3, 'joy': 4, 'disgust': 5, 'anger':6}
-        '''
-        self.keys = [x for x in (self.trainVid if train else self.testVid)]
+            self.videoLabels = self.SentimentLabels
+        
+        if split == 'train':
+            for k in self.Speakers:
+                self.train_speakers.update(self.Speakers[k])
+            self.train_speakers = list(self.train_speakers)
+            self.train_speakers = {k: v for v, k in enumerate(self.train_speakers)}
+            self.keys = [x for x in self.trainId]
+        elif split == 'test':
+            self.keys = [x for x in self.testId]
+        elif split == 'valid':
+            self.keys = [x for x in self.validId]
 
         self.len = len(self.keys)
 
     def __getitem__(self, index):
-        vid = self.keys[index]
-        return torch.FloatTensor(self.videoText[vid]),\
-               torch.FloatTensor(self.videoAudio[vid]),\
-               torch.FloatTensor(self.videoSpeakers[vid]),\
-               torch.FloatTensor([1]*len(self.videoLabels[vid])),\
-               torch.LongTensor(self.videoLabels[vid]),\
-               vid
+        conv = self.keys[index]
+        assert len(self.train_speakers) > 0, "no speakers, please check again"
+        
+        # encode speaker name to a vector of 0 or 1 (based on speaker seen in training)
+        speaker_features = []
+        # print(self.train_speakers)
+        for s in self.Speakers[conv]:
+            speaker_feature = [0] * len(self.train_speakers)
+            if s in self.train_speakers:
+                speaker_feature[self.train_speakers[s]] = 1
+            speaker_features.append(speaker_feature)
+        
+        return torch.FloatTensor(self.Features[conv]), \
+               torch.FloatTensor(speaker_features), \
+               torch.FloatTensor([1] * len(self.videoLabels[conv])), \
+               torch.LongTensor(self.videoLabels[conv]), \
+               conv
 
     def __len__(self):
         return self.len
 
     def collate_fn(self, data):
         dat = pd.DataFrame(data)
-        return [pad_sequence(dat[i]) if i<3 else pad_sequence(dat[i], True) if i<5 else dat[i].tolist() for i in dat]
 
+        return [pad_sequence(dat[i]) if i < 2 else pad_sequence(dat[i], True) if i < 4 else dat[i].tolist() for i in
+                dat]
 
 class DailyDialogueDataset(Dataset):
 
