@@ -82,7 +82,8 @@ if __name__ == "__main__":
                         help="Number of speakers.")
     parser.add_argument("--hidden_size", type=int, default=100,
                         help="Hidden size of two layer GCN.")
-    parser.add_argument("--rnn", type=str, default="lstm",
+
+    parser.add_argument("--model_type", type=str, default="gru",
                         choices=["lstm", "gru"], help="Type of RNN cell.")
     parser.add_argument("--class_weight", action="store_true",
                         help="Use class weights in nll loss.")

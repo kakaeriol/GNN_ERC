@@ -9,10 +9,7 @@ log = dgcn.utils.get_logger()
 
 def main(args):
     dgcn.utils.set_seed(args.seed)
-    if torch.cuda.is_available():
-        generator = torch.Generator('cuda').manual_seed(args.seed)
-    else:
-        generator = torch.Generator().manual_seed(args.seed)
+
     # load data
     log.debug("Loading data from '%s'." % args.data)
     data = dgcn.utils.load_pkl(args.data)
@@ -82,8 +79,8 @@ if __name__ == "__main__":
                         help="Number of speakers.")
     parser.add_argument("--hidden_size", type=int, default=100,
                         help="Hidden size of two layer GCN.")
-    parser.add_argument("--rnn", type=str, default="lstm",
-                        choices=["lstm", "gru"], help="Type of RNN cell.")
+    parser.add_argument("--model_type", type=str, default="transformer",
+                        choices=["lstm", "gru", 'transformer'], help="Type of RNN cell.")
     parser.add_argument("--class_weight", action="store_true",
                         help="Use class weights in nll loss.")
 
