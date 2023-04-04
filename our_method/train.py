@@ -61,7 +61,7 @@ def main(args):
     log.info("Start training...")
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     scheduler = optim.lr_scheduler.StepLR(
-        optimizer, step_size=20, gamma=0.1
+        optimizer, step_size=20, gamma=0.0001
     )
      # Can change as the paper itself
     # loss_fcn = nn.NLLLoss()
