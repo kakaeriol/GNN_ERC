@@ -1,6 +1,6 @@
 import pandas as pd, numpy as np, pickle
 from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
+from keras.utils.data_utils import pad_sequences
 
 
 def preprocess_text(x):
@@ -45,7 +45,7 @@ def load_pretrained_glove():
     print("Loading GloVe model, this can take some time...")
     glv_vector = {}
     # Put your glove embedding path here
-    f = open('/your/path/glove.840B.300d.txt', encoding='utf-8')
+    f = open('glove.6B.100d.txt', encoding='utf-8')
 
     for line in f:
         values = line.split()
@@ -68,7 +68,7 @@ if __name__ == '__main__':
     # Your training data path
     # Data format is consistent with DialogueRNN
     train_data = create_utterances('dailydialog/train.json', 'train')
-    valid_data = create_utterances('dailydialog/dev.json', 'valid')
+    valid_data = create_utterances('dailydialog/valid.json', 'valid')
     test_data = create_utterances('dailydialog/test.json', 'test')
 
     ## encode the emotion and dialog act labels ##
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     valid_data['sentence_length'] = [len(item) for item in valid_sequence]
     test_data['sentence_length'] = [len(item) for item in test_sequence]
 
-    max_num_tokens = 250
+    max_num_tokens = 100
 
     train_sequence = pad_sequences(train_sequence, maxlen=max_num_tokens, padding='post')
     valid_sequence = pad_sequences(valid_sequence, maxlen=max_num_tokens, padding='post')
