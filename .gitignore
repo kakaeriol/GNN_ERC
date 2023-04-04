@@ -1,5 +1,11 @@
 data/
 
+*/data/*
+*/log/*
+*/save/*
+*.ipynb
+data/
+  
 baseline/DialogueGCN-mianzhang/dgcn/model/__pycache__/
 baseline/DialogueGCN/__pycache__/
 baseline/DialogueGCN-mianzhang/dgcn/model/__pycache__/*
