@@ -4,3 +4,9 @@ baseline/DialogueGCN-mianzhang/dgcn/model/__pycache__/
 baseline/DialogueGCN/__pycache__/
 baseline/DialogueGCN-mianzhang/dgcn/model/__pycache__/*
 baseline/.ipynb_checkpoints/
+baseline/data
+our_method/dgcn/model/__pycache__
+our_method/.ipynb_checkpoints/
+our_method/dgcn/model/.ipynb_checkpoints/*
+our_method/dgcn/model/__pycache__/*
+our_method/dgcn/__pycache__/*
