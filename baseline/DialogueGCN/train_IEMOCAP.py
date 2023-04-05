@@ -27,26 +27,23 @@ def get_train_valid_sampler(trainset, valid=0.1):
     split = int(valid*size)
     return SubsetRandomSampler(idx[split:]), SubsetRandomSampler(idx[:split])
 
-
 def get_IEMOCAP_loaders(batch_size=32, valid=0.1, num_workers=0, pin_memory=False):
-    trainset = IEMOCAPDataset()
-    train_sampler, valid_sampler = get_train_valid_sampler(trainset, valid)
+    trainset = IEMOCAPDataset(split="train")
+    validset = IEMOCAPDataset(split="valid")
 
     train_loader = DataLoader(trainset,
                               batch_size=batch_size,
-                              sampler=train_sampler,
                               collate_fn=trainset.collate_fn,
                               num_workers=num_workers,
                               pin_memory=pin_memory)
 
-    valid_loader = DataLoader(trainset,
+    valid_loader = DataLoader(validset,
                               batch_size=batch_size,
-                              sampler=valid_sampler,
                               collate_fn=trainset.collate_fn,
                               num_workers=num_workers,
                               pin_memory=pin_memory)
 
-    testset = IEMOCAPDataset(train=False)
+    testset = IEMOCAPDataset(split="test")
     test_loader = DataLoader(testset,
                              batch_size=batch_size,
                              collate_fn=testset.collate_fn,
@@ -73,7 +70,7 @@ def train_or_eval_model(model, loss_function, dataloader, epoch, optimizer=None,
             optimizer.zero_grad()
         
         # import ipdb;ipdb.set_trace()
-        textf, visuf, acouf, qmask, umask, label = [d.cuda() for d in data[:-1]] if cuda else data[:-1]        
+        textf, qmask, umask, label = [d.cuda() for d in data[:-1]] if cuda else data[:-1]        
         max_sequence_len.append(textf.size(0))
         
         # log_prob, alpha, alpha_f, alpha_b = model(torch.cat((textf, acouf, visuf), dim=-1), qmask, umask)
@@ -135,7 +132,7 @@ def train_or_eval_graph_model(model, loss_function, dataloader, epoch, cuda, opt
         if train:
             optimizer.zero_grad()
         
-        textf, visuf, acouf, qmask, umask, label = [d.cuda() for d in data[:-1]] if cuda else data[:-1]
+        textf, qmask, umask, label = [d.cuda() for d in data[:-1]] if cuda else data[:-1]
 
         lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in range(len(umask))]
 
@@ -232,7 +229,7 @@ if __name__ == '__main__':
         from tensorboardX import SummaryWriter
         writer = SummaryWriter()
 
-    n_classes  = 6
+    n_classes  = 10
     cuda       = args.cuda
     n_epochs   = args.epochs
     batch_size = args.batch_size
