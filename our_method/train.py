@@ -161,7 +161,7 @@ if __name__ == "__main__":
     parser.add_argument("--hidden_size", type=int, default=100,
                         help="Hidden size of two layer GCN.")
     parser.add_argument("--rnn", type=str, default="lstm",
-                        choices=["lstm", "gru"], help="Type of RNN cell.")
+                        choices=["lstm", "gru", "transformer"], help="Type of RNN cell.")
     parser.add_argument("--class_weight", action="store_true",
                         help="Use class weights in nll loss.")
     parser.add_argument("--lossfunc", type=str, default="ntll",
