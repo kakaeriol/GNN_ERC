@@ -5,7 +5,9 @@ from .SeqContext import SeqContext
 from .EdgeAtt import EdgeAtt
 from .GraphTransform import GTModel
 from .graph_functions import batch_graphify
-
+from .graph_functions import create_graph
+from .RGT import RGTModel_Final_layer
+from .RGT import RGTModel
 import dgcn
 log = dgcn.utils.get_logger()
 
@@ -29,7 +31,9 @@ class DialogueGCN(nn.Module):
         #
         self.rnn = SeqContext(u_dim, g_dim, args)
         self.edge_att = EdgeAtt(g_dim, args)
-        self.gtm = GTModel(tag_size, input_size= g_dim)
+        # self.gtm = GTModel(tag_size, input_size= g_dim) ## adding if else here later
+        # self.gtm = RGTModel_Final_layer(tag_size, input_size= g_dim) #v00
+        self.gtm = RGTModel(tag_size, input_size= g_dim) #v01
         self.softmax = nn.LogSoftmax(dim=1)
         edge_type_to_idx = {}
         for j in range(args.n_speakers):
@@ -41,14 +45,15 @@ class DialogueGCN(nn.Module):
 
     def get_rep(self, data):
         node_features = self.rnn(data["text_len_tensor"], data["text_tensor"]) # [batch_size, mx_len, D_g]
-        graph_out = batch_graphify(
+        node_features, edge_index, edge_norm, edge_type, edge_index_lengths = batch_graphify(
             node_features, data["text_len_tensor"], data["speaker_tensor"], self.wp, self.wf,
-            self.edge_type_to_idx, self.edge_att, self.device, self.pos_enc_size)
+            self.edge_type_to_idx, self.edge_att, self.device)
+        graph_out = create_graph(node_features, edge_index, edge_norm, edge_type, self.device, self.pos_enc_size)
         return graph_out
 
     def forward(self, data):
         graph_out= self.get_rep(data)
-        out = self.gtm(graph_out, graph_out.ndata['feat'], graph_out.ndata['PE'])
+        out = self.gtm(graph_out, graph_out.ndata['feat'], graph_out.ndata['PE']) # Graph Transform
         # out = torch.argmax(out, dim=-1)
         return self.softmax(out)
 
