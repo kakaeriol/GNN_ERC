@@ -4,27 +4,29 @@ from torch.nn.utils.rnn import pad_sequence
 import pickle, pandas as pd
 
 class IEMOCAPDataset(Dataset):
-
-    def __init__(self, train=True):
-        self.videoIDs, self.videoSpeakers, self.videoLabels, self.videoText,\
-        self.videoAudio, self.videoVisual, self.videoSentence, self.trainVid,\
-        self.testVid = pickle.load(open('./IEMOCAP_features/IEMOCAP_features.pkl', 'rb'), encoding='latin1')
+    def __init__(self, split="train"):
+        self.Speakers, self.Features, _, \
+        self.EmotionLabels, self.trainId, self.testId, self.validId = pickle.load(open("IEMOCAP_features/IEMOCAP_features.pkl", 'rb'))
+        
         '''
         label index mapping = {'hap':0, 'sad':1, 'neu':2, 'ang':3, 'exc':4, 'fru':5}
         '''
-        self.keys = [x for x in (self.trainVid if train else self.testVid)]
+        if split == 'train':
+            self.keys = [x for x in self.trainId]
+        elif split == 'test':
+            self.keys = [x for x in self.testId]
+        elif split == 'valid':
+            self.keys = [x for x in self.validId]
 
         self.len = len(self.keys)
 
     def __getitem__(self, index):
         vid = self.keys[index]
-        return torch.FloatTensor(self.videoText[vid]),\
-               torch.FloatTensor(self.videoVisual[vid]),\
-               torch.FloatTensor(self.videoAudio[vid]),\
+        return torch.FloatTensor(self.Features[vid]),\
                torch.FloatTensor([[1,0] if x=='M' else [0,1] for x in\
-                                  self.videoSpeakers[vid]]),\
-               torch.FloatTensor([1]*len(self.videoLabels[vid])),\
-               torch.LongTensor(self.videoLabels[vid]),\
+                                  self.Speakers[vid]]),\
+               torch.FloatTensor([1]*len(self.EmotionLabels[vid])),\
+               torch.LongTensor(self.EmotionLabels[vid]),\
                vid
 
     def __len__(self):
@@ -32,8 +34,8 @@ class IEMOCAPDataset(Dataset):
 
     def collate_fn(self, data):
         dat = pd.DataFrame(data)
-        return [pad_sequence(dat[i]) if i<4 else pad_sequence(dat[i], True) if i<6 else dat[i].tolist() for i in dat]
-
+        return [pad_sequence(dat[i]) if i < 2 else pad_sequence(dat[i], True) if i < 4 else dat[i].tolist() for i in
+                dat]
 
 class AVECDataset(Dataset):
 
