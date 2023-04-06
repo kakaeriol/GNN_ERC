@@ -7,7 +7,6 @@ import dgcn
 
 log = dgcn.utils.get_logger()
 
-
 def split():
     dgcn.utils.set_seed(args.seed)
 
@@ -42,6 +41,88 @@ def split():
 
     return train, dev, test
 
+def split_IEMOCAP():
+    dgcn.utils.set_seed(args.seed)
+
+    Speakers, Features, _, \
+    EmotionLabels, train_vids, test_vids, dev_vids = pickle.load(open("IEMOCAP_features/IEMOCAP_features.pkl", 'rb'))
+    
+    train, dev, test = [], [], []
+    for vid in tqdm(train_vids, desc="train"):
+        train.append(dgcn.Sample(vid, Speakers[vid], EmotionLabels[vid],
+                                 Features[vid]))
+    for vid in tqdm(dev_vids, desc="dev"):
+        dev.append(dgcn.Sample(vid, Speakers[vid], EmotionLabels[vid],
+                               Features[vid]))
+    for vid in tqdm(test_vids, desc="test"):
+        test.append(dgcn.Sample(vid, Speakers[vid], EmotionLabels[vid],
+                                Features[vid]))
+    log.info("train vids:")
+    log.info(sorted(train_vids))
+    log.info("dev vids:")
+    log.info(sorted(dev_vids))
+    log.info("test vids:")
+    log.info(sorted(test_vids))
+
+    return train, dev, test
+
+def split_dailydialogue():
+    
+    # READ: CHANGE TO CORRECT DATA PATH HERE:
+    dgcn.utils.set_seed(args.seed)
+    video_speakers, video_text, _, \
+    act_labels, video_labels, train_vids, test_vids, dev_vids = pickle.load(open('data/daily_dialogue2.pkl', 'rb'), encoding='latin1')
+
+    test_vids = list(test_vids)
+
+    train, dev, test = [], [], []
+
+    for vid in tqdm(train_vids, desc="train"):
+        train.append(dgcn.Sample(vid, video_speakers[vid], video_labels[vid],
+                                 video_text[vid]))
+    for vid in tqdm(dev_vids, desc="dev"):
+        dev.append(dgcn.Sample(vid, video_speakers[vid], video_labels[vid],
+                               video_text[vid]))
+    for vid in tqdm(test_vids, desc="test"):
+        test.append(dgcn.Sample(vid, video_speakers[vid], video_labels[vid],
+                                video_text[vid]))
+    log.info("train vids:")
+    log.info(sorted(train_vids))
+    log.info("dev vids:")
+    log.info(sorted(dev_vids))
+    log.info("test vids:")
+    log.info(sorted(test_vids))
+
+    return train, dev, test
+
+def split_meld():
+    
+    # READ: CHANGE TO CORRECT DATA PATH HERE:
+    dgcn.utils.set_seed(args.seed)
+    video_speakers, video_text, _, \
+    act_labels, video_labels, train_vids, test_vids, dev_vids = pickle.load(open('data/MELD.pkl', 'rb'), encoding='latin1')
+
+    test_vids = list(test_vids)
+
+    train, dev, test = [], [], []
+
+    for vid in tqdm(train_vids, desc="train"):
+        train.append(dgcn.Sample(vid, video_speakers[vid], video_labels[vid],
+                                 video_text[vid]))
+    for vid in tqdm(dev_vids, desc="dev"):
+        dev.append(dgcn.Sample(vid, video_speakers[vid], video_labels[vid],
+                               video_text[vid]))
+    for vid in tqdm(test_vids, desc="test"):
+        test.append(dgcn.Sample(vid, video_speakers[vid], video_labels[vid],
+                                video_text[vid]))
+    log.info("train vids:")
+    log.info(sorted(train_vids))
+    log.info("dev vids:")
+    log.info(sorted(dev_vids))
+    log.info("test vids:")
+    log.info(sorted(test_vids))
+
+    return train, dev, test
 
 def main(args):
     train, dev, test = split()
