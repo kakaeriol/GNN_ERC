@@ -7,6 +7,7 @@ from .GraphTransform import GTModel
 from .graph_functions import batch_graphify
 from .graph_functions import create_graph
 from .RGT import RGTModel_Final_layer
+from .RGT import RGTModel
 import dgcn
 log = dgcn.utils.get_logger()
 
@@ -31,7 +32,8 @@ class DialogueGCN(nn.Module):
         self.rnn = SeqContext(u_dim, g_dim, args)
         self.edge_att = EdgeAtt(g_dim, args)
         # self.gtm = GTModel(tag_size, input_size= g_dim) ## adding if else here later
-        self.gtm = RGTModel_Final_layer(tag_size, input_size= g_dim)
+        # self.gtm = RGTModel_Final_layer(tag_size, input_size= g_dim) #v00
+        self.gtm = RGTModel(tag_size, input_size= g_dim) #v01
         self.softmax = nn.LogSoftmax(dim=1)
         edge_type_to_idx = {}
         for j in range(args.n_speakers):

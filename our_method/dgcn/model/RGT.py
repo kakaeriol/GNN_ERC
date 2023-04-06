@@ -144,11 +144,15 @@ class RGTLayer(nn.Module):
         self.FFN2 = nn.Linear(hidden_size * 2, hidden_size)
 
     def forward(self, g, h):
+        N = g.num_nodes()
         h_out = torch.ones_like(h)
         ll = []
+        edges = g.edges()
+        edges_norm = g.edata['norm']
         for itype in g.edata['rel_type'].unique():
             src = edges[0][g.edata['rel_type'] == itype]
             des = edges[1][g.edata['rel_type'] == itype]
+            val = edges_norm[g.edata['rel_type'] == itype]
             # ---
             indices = torch.stack((src, des))
             A_k =  dglsp.spmatrix(indices, shape=(N, N))
@@ -156,7 +160,7 @@ class RGTLayer(nn.Module):
             hk = self.MHA(A_k, hk)
             ll.append(hk)
             h_out = h_out*hk # need to change to linear layer later!
-        h = self.batchnorm1(h + hout)
+        h = self.batchnorm1(h + h_out)
 
         h2 = h
         h = self.FFN2(F.relu(self.FFN1(h)))
@@ -180,7 +184,7 @@ class RGTModel(nn.Module):
         self.embedding_h =  nn.Linear(input_size, hidden_size)#dgl.nn.GATConv(input_dim, hidden_size, num_heads=num_heads)
         self.pos_linear = nn.Linear(pos_enc_size, hidden_size)
         self.layers = nn.ModuleList(
-            [GTLayer(hidden_size, num_heads) for _ in range(num_layers)]
+            [RGTLayer(hidden_size, num_heads) for _ in range(num_layers)]
         )
         self.predictor = MLP_layer(hidden_size, out_size)
 
