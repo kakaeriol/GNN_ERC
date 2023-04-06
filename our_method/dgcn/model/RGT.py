@@ -113,7 +113,7 @@ class RGTModel_Final_layer(nn.Module):
         N = g.num_nodes()
         h = self.embedding_h(X) + self.pos_linear(pos_enc)
         ll = []
-        h_out = torch.ones_like(h)
+        h_out = torch.zeros_like(h)
         edges = g.edges()
         edges_norm = g.edata['norm']
         for itype in g.edata['rel_type'].unique():
@@ -128,7 +128,7 @@ class RGTModel_Final_layer(nn.Module):
             for layer in self.layers:
                 hk = layer(A_k, hk)
             ll.append(hk) # <-- should we try the voting for each A instead of multiply!!!
-            h_out = h_out*hk ## instead of this one adding the concat layer
+            h_out = h_out = self.batchnorm1(hk + h_out) ## instead of this one adding the concat layer
         return self.predictor(h_out)
     
 ### RELATIONAL IN GTLAYER AT MULTIHEAD LAYER
@@ -145,7 +145,7 @@ class RGTLayer(nn.Module):
 
     def forward(self, g, h):
         N = g.num_nodes()
-        h_out = torch.ones_like(h)
+        h_out = torch.zeros_like(h)
         ll = []
         edges = g.edges()
         edges_norm = g.edata['norm']
@@ -159,7 +159,7 @@ class RGTLayer(nn.Module):
             hk = h #torch.clone(h)
             hk = self.MHA(A_k, hk)
             ll.append(hk)
-            h_out = h_out*hk # need to change to linear layer later!
+            h_out = self.batchnorm1(hk + h_out) # need to change to linear layer later!
         h = self.batchnorm1(h + h_out)
 
         h2 = h
