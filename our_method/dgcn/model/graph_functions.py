@@ -1,8 +1,35 @@
 import numpy as np
 import torch
 import dgl
+def edge_perms(length, window_past, window_future):
+    """
+    Method to construct the edges of a graph (a utterance) considering the past and future window.
+    return: list of tuples. tuple -> (vertice(int), neighbor(int))
+    """
 
-def batch_graphify(features, lengths, speaker_tensor, wp, wf, edge_type_to_idx, att_model, device, pos_enc_size):
+    all_perms = set()
+    array = np.arange(length)
+    for j in range(length):
+        perms = set()
+
+        if window_past == -1 and window_future == -1:
+            eff_array = array
+        elif window_past == -1:  # use all past context
+            eff_array = array[:min(length, j + window_future + 1)]
+        elif window_future == -1:  # use all future context
+            eff_array = array[max(0, j - window_past):]
+        else:
+            eff_array = array[max(0, j - window_past):min(length, j + window_future + 1)]
+
+        for item in eff_array:
+            perms.add((j, item))
+        all_perms = all_perms.union(perms)
+    return list(all_perms)
+
+def batch_graphify(features, lengths, speaker_tensor, wp, wf, edge_type_to_idx, att_model, device):
+    """ 
+    Return Graph Feature for each batch 
+    """
     node_features, edge_index, edge_norm, edge_type = [], [], [], []
     batch_size = features.size(0)
     length_sum = 0
@@ -39,36 +66,18 @@ def batch_graphify(features, lengths, speaker_tensor, wp, wf, edge_type_to_idx, 
     edge_type = torch.tensor(edge_type).long().to(device)  # [E]
     edge_index_lengths = torch.tensor(edge_index_lengths).long().to(device)  # [B]
 
+    return node_features, edge_index, edge_norm, edge_type, edge_index_lengths
+
+def create_graph(node_features, edge_index, edge_norm, edge_type, device, pos_enc_size=2):
+    """
+    Return the graph form from graph features
+    """
     graph_out = dgl.graph((edge_index[0], edge_index[1]))
     graph_out.norm = edge_norm
     graph_out.ndata['feat'] = node_features
     graph_out.ndata['PE'] = dgl.laplacian_pe(graph_out, k=pos_enc_size, padding=True).to(device)
-    graph_out.edata['feat'] = edge_norm
-    graph_out.edge_index_lengths = edge_index_lengths
+    graph_out.edata['feat'] = torch.ones_like(edge_index[0])
+    graph_out.edata['norm'] = edge_norm
+    graph_out.edata['rel_type'] = edge_type
+    # graph_out.edge_index_lengths = edge_index_lengths
     return graph_out
-
-
-def edge_perms(length, window_past, window_future):
-    """
-    Method to construct the edges of a graph (a utterance) considering the past and future window.
-    return: list of tuples. tuple -> (vertice(int), neighbor(int))
-    """
-
-    all_perms = set()
-    array = np.arange(length)
-    for j in range(length):
-        perms = set()
-
-        if window_past == -1 and window_future == -1:
-            eff_array = array
-        elif window_past == -1:  # use all past context
-            eff_array = array[:min(length, j + window_future + 1)]
-        elif window_future == -1:  # use all future context
-            eff_array = array[max(0, j - window_past):]
-        else:
-            eff_array = array[max(0, j - window_past):min(length, j + window_future + 1)]
-
-        for item in eff_array:
-            perms.add((j, item))
-        all_perms = all_perms.union(perms)
-    return list(all_perms)
