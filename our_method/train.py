@@ -22,10 +22,11 @@ def evaluation(model, dataset,  device='cuda:0'):
             for k, v in data.items():
                 data[k] = v.to(device)
             logits = model(data)
-            y_hat = torch.argmax(logits, dim=-1).detach().cpu()
+            # y_hat = torch.argmax(logits, dim=-1).detach().cpu()
+            y_hat = logits.detach().cpu()
             y_pred.append(y_hat)
         y_true = torch.cat(y_true, dim=0).numpy()
-        y_pred = torch.cat(y_pred, dim=0).numpy()
+        y_pred = torch.cat(y_pred, dim=-1).numpy()
         f1  = sklearn.metrics.f1_score(y_true, y_pred,average="weighted")
         return f1
 
@@ -63,20 +64,7 @@ def main(args):
     scheduler = optim.lr_scheduler.StepLR(
         optimizer, step_size=20, gamma=0.0001
     )
-     # Can change as the paper itself
-    # loss_fcn = nn.NLLLoss()
     
-    if args.lossfunc == 'entropy':
-        loss_fcn = nn.CrossEntropyLoss()
-    else:
-        if args.class_weight:
-            loss_weights = torch.tensor([1 / 0.086747, 1 / 0.144406, 1 / 0.227883,
-                                                          1 / 0.160585, 1 / 0.127711, 1 / 0.252668]).to(args.device)
-            loss_fcn = nn.NLLLoss(loss_weights)
-        else:
-            loss_fcn = nn.NLLLoss()
-    
-
     best_state = None
     best_dev_f1 = None
     best_epoch = None
@@ -93,7 +81,7 @@ def main(args):
             for k, v in idata.items():
                 idata[k] = v.to(args.device)
             logits = model(idata)
-            loss = loss_fcn(logits, label)
+            loss = model.get_loss(idata)
             total_loss += loss.item()
             loss.backward()
             optimizer.step()

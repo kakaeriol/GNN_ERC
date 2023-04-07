@@ -11,23 +11,24 @@ from dgl.dataloading import GraphDataLoader
 from ogb.graphproppred import collate_dgl, DglGraphPropPredDataset, Evaluator
 from ogb.graphproppred.mol_encoder import AtomEncoder
 from tqdm import tqdm
+from dgl.nn import TypedLinear
 
-class MLP_layer(nn.Module):
+# class MLP_layer(nn.Module):
     
-    def __init__(self, input_dim, output_dim, L=2): # L = nb of hidden layers
-        super(MLP_layer, self).__init__()
-        list_FC_layers = [ nn.Linear( input_dim, input_dim, bias=True ) for l in range(L) ]
-        list_FC_layers.append(nn.Linear( input_dim, output_dim , bias=True ))
-        self.FC_layers = nn.ModuleList(list_FC_layers)
-        self.L = L
+#     def __init__(self, input_dim, output_dim, L=2): # L = nb of hidden layers
+#         super(MLP_layer, self).__init__()
+#         list_FC_layers = [ nn.Linear( input_dim, input_dim, bias=True ) for l in range(L) ]
+#         list_FC_layers.append(nn.Linear( input_dim, output_dim , bias=True ))
+#         self.FC_layers = nn.ModuleList(list_FC_layers)
+#         self.L = L
         
-    def forward(self, x):
-        y = x
-        for l in range(self.L):
-            y = self.FC_layers[l](y)
-            y = torch.relu(y)
-        y = self.FC_layers[self.L](y)
-        return y
+#     def forward(self, x):
+#         y = x
+#         for l in range(self.L):
+#             y = self.FC_layers[l](y)
+#             y = torch.relu(y)
+#         y = self.FC_layers[self.L](y)
+#         return y
 
 class SparseMHA(nn.Module):
     """Sparse Multi-head Attention Module"""
@@ -92,7 +93,6 @@ class RGTModel_Final_layer(nn.Module):
     """
     def __init__(
         self,
-        out_size, # 6
         input_size=200, # g_dim
         hidden_size=80,
         pos_enc_size=2,
@@ -105,7 +105,6 @@ class RGTModel_Final_layer(nn.Module):
         self.layers = nn.ModuleList(
             [GTLayer(hidden_size, num_heads) for _ in range(num_layers)]
         )
-        self.predictor = MLP_layer(hidden_size, out_size)
 
     def forward(self, g, X, pos_enc): ## Need to change to message function later!!
         """  
@@ -129,26 +128,31 @@ class RGTModel_Final_layer(nn.Module):
                 hk = layer(A_k, hk)
             ll.append(hk) # <-- should we try the voting for each A instead of multiply!!!
             h_out = h_out = self.batchnorm1(hk + h_out) ## instead of this one adding the concat layer
-        return self.predictor(h_out)
+        return h_out
     
 ### RELATIONAL IN GTLAYER AT MULTIHEAD LAYER
 class RGTLayer(nn.Module):
     """Graph Transformer Layer"""
 
-    def __init__(self, hidden_size=80, num_heads=8):
+    def __init__(self, hidden_size=80, num_heads=8, num_relational=1):
         super().__init__()
         self.MHA = SparseMHA(hidden_size=hidden_size, num_heads=num_heads)
         self.batchnorm1 = nn.BatchNorm1d(hidden_size)
         self.batchnorm2 = nn.BatchNorm1d(hidden_size)
         self.FFN1 = nn.Linear(hidden_size, hidden_size * 2)
         self.FFN2 = nn.Linear(hidden_size * 2, hidden_size)
-
+        self.num_rel = num_relational
+        self.linear_r = nn.Linear(self.num_rel*hidden_size, hidden_size)
     def forward(self, g, h):
         N = g.num_nodes()
-        h_out = torch.zeros_like(h)
+        # h_out = torch.zeros_like(h)
         ll = []
         edges = g.edges()
         edges_norm = g.edata['norm']
+        temp = []
+        ## check num relation and relation type unique
+        assert self.num_rel == len(g.edata['rel_type'].unique()), "please check relational initialize"
+        ii = 0
         for itype in g.edata['rel_type'].unique():
             src = edges[0][g.edata['rel_type'] == itype]
             des = edges[1][g.edata['rel_type'] == itype]
@@ -159,7 +163,10 @@ class RGTLayer(nn.Module):
             hk = h #torch.clone(h)
             hk = self.MHA(A_k, hk)
             ll.append(hk)
-            h_out = self.batchnorm1(hk + h_out) # need to change to linear layer later!
+            temp.append(torch.ones_like(h[0,:])*ii) 
+            ii += 1
+            # h_out = self.batchnorm1(hk + h_out) # need to change to linear layer later!
+        h_out = self.linear_r(torch.cat(ll, dim=-1))
         h = self.batchnorm1(h + h_out)
 
         h2 = h
@@ -173,7 +180,7 @@ class RGTModel(nn.Module):
     """
     def __init__(
         self,
-        out_size, # 6
+        num_relational=1,
         input_size=200, # g_dim
         hidden_size=80,
         pos_enc_size=2,
@@ -184,9 +191,9 @@ class RGTModel(nn.Module):
         self.embedding_h =  nn.Linear(input_size, hidden_size)#dgl.nn.GATConv(input_dim, hidden_size, num_heads=num_heads)
         self.pos_linear = nn.Linear(pos_enc_size, hidden_size)
         self.layers = nn.ModuleList(
-            [RGTLayer(hidden_size, num_heads) for _ in range(num_layers)]
+            [RGTLayer(hidden_size, num_heads, num_relational) for _ in range(num_layers)]
         )
-        self.predictor = MLP_layer(hidden_size, out_size)
+        
 
     def forward(self, g, X, pos_enc):
         indices = torch.stack(g.edges())
@@ -194,4 +201,4 @@ class RGTModel(nn.Module):
         h = self.embedding_h(X) + self.pos_linear(pos_enc)
         for layer in self.layers:
             h = layer(g, h)
-        return self.predictor(h)
+        return h
