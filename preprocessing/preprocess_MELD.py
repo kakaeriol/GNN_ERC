@@ -1,7 +1,11 @@
+import tensorflow as tf
+from tensorflow import keras
 import pandas as pd, numpy as np, pickle
 from keras.preprocessing.text import Tokenizer
 from keras.utils.data_utils import pad_sequences
-
+import pathlib
+import os
+from importlib.machinery import SourceFileLoader
 
 def preprocess_text(x):
     for punct in '"!&?.,}-/<>#$%\()*+:;=?@[\\]^_`|\~':
@@ -43,11 +47,11 @@ def create_utterances(filename, split):
     return data
 
 
-def load_pretrained_glove():
+def load_pretrained_glove(glove_link):
     print("Loading GloVe model, this can take some time...")
     glv_vector = {}
     # Put your glove embedding path here
-    f = open('baseline/DialogueGCN/glove.6B.100d.txt', encoding='utf-8')
+    f = open(glove_link, encoding='utf-8')
 
     for line in f:
         values = line.split()
@@ -67,7 +71,7 @@ def encode_labels(encoder, l):
 
 import json
 
-def convert_to_standard_json(df,fold_name):
+def convert_to_standard_json(df,link, fold_name):
     current_dialogue_id = -1
     for idx, row in df.iterrows():
         # start of data
@@ -77,7 +81,7 @@ def convert_to_standard_json(df,fold_name):
         
         # new conversation - store the prev one
         if current_dialogue_id != row.Dialogue_ID:
-            with open('baseline/DialogueGCN/MELD_features/' + str(fold_name) + '.json', 'a') as the_file:
+            with open(link , 'a') as the_file:
                 json_string = json.dumps(datapt)
                 print("writing:")
                 the_file.write(json_string+"\n")
@@ -95,19 +99,39 @@ def convert_to_standard_json(df,fold_name):
         datapt["dialogue"].append(sentence_data)
 
 if __name__ == '__main__':
-    train_data = pd.read_csv('baseline/DialogueGCN/MELD_features/train_sent_emo.csv')
-    valid_data = pd.read_csv('baseline/DialogueGCN/MELD_features/valid_sent_emo.csv')
-    test_data = pd.read_csv('baseline/DialogueGCN/MELD_features/test_sent_emo.csv')
-    
-    convert_to_standard_json(train_data,"train")
-    convert_to_standard_json(valid_data,"valid")
-    convert_to_standard_json(test_data,"test")
+    # Data format is consistent with DialogueRNN
+    curr_path = pathlib.Path().resolve()
+    sys_path = os.path.join(os.path.dirname(curr_path), "sysconf.py")
+    conf = (SourceFileLoader("sysconf", sys_path).load_module()).conf
+    #
+    train_path = os.path.join(conf["raw_MELD_path"], "train_sent_emo.csv")
+    valid_path = os.path.join(conf["raw_MELD_path"], "dev_sent_emo.csv")
+    test_path = os.path.join(conf["raw_MELD_path"], "test_sent_emo.csv")
+    #
+    train_data = pd.read_csv(train_path)
+    valid_data = pd.read_csv(valid_path)
+    test_data = pd.read_csv(test_path)
+    #
+    train_json = os.path.join(conf["base_MELD_path"], "train.json")
+    test_json = os.path.join(conf["base_MELD_path"], "test.json")
+    valid_json = os.path.join(conf["base_MELD_path"], "valid.json")
+    #
+    convert_to_standard_json(train_data, train_json, "train")
+    convert_to_standard_json(valid_data, valid_json , "valid")
+    convert_to_standard_json(test_data, test_json, "test")
 
     # Your training data path
     # Data format is consistent with DialogueRNN
-    train_data = create_utterances('baseline/DialogueGCN/MELD_features/train.json', 'train')
-    valid_data = create_utterances('baseline/DialogueGCN/MELD_features/valid.json', 'valid')
-    test_data = create_utterances('baseline/DialogueGCN/MELD_features/test.json', 'test')
+    train_data = create_utterances(train_json, 'train')
+    valid_data = create_utterances(valid_json, 'valid')
+    test_data = create_utterances(test_json, 'test')
+    #
+    ale_path = os.path.join(conf["base_MELD_path"], "act_label_encoder.pkl") 
+    ald_path = os.path.join(conf["base_MELD_path"], "act_label_decoder.pkl") 
+    ele_path = os.path.join(conf["base_MELD_path"], "emotion_label_encoder.pkl") 
+    eld_path = os.path.join(conf["base_MELD_path"], "emotion_label_decoder.pkl")
+    sle_path = os.path.join(conf["base_MELD_path"], "sentiment_label_encoder.pkl") 
+    sld_path = os.path.join(conf["base_MELD_path"], "sentiment_label_decoder.pkl")
 
     ## encode the emotion and dialog act labels ##
     all_act_labels, all_emotion_labels, all_sentiment_labels = set(train_data['act_label']), set(train_data['emotion_label']), set(train_data['sentiment_label'])
@@ -133,12 +157,12 @@ if __name__ == '__main__':
         sentiment_label_decoder[i] = label
         print(str(sentiment_label_encoder[label]) + " " + str(sentiment_label_decoder[i]))
 
-    pickle.dump(act_label_encoder, open('baseline/DialogueGCN/MELD_features/act_label_encoder.pkl', 'wb'))
-    pickle.dump(act_label_decoder, open('baseline/DialogueGCN/MELD_features/act_label_decoder.pkl', 'wb'))
-    pickle.dump(emotion_label_encoder, open('baseline/DialogueGCN/MELD_features/emotion_label_encoder.pkl', 'wb'))
-    pickle.dump(emotion_label_decoder, open('baseline/DialogueGCN/MELD_features/emotion_label_decoder.pkl', 'wb'))
-    pickle.dump(sentiment_label_encoder, open('baseline/DialogueGCN/MELD_features/sentiment_label_encoder.pkl', 'wb'))
-    pickle.dump(sentiment_label_decoder, open('baseline/DialogueGCN/MELD_features/sentiment_label_decoder.pkl', 'wb'))
+    pickle.dump(act_label_encoder, open(ale_path, 'wb'))
+    pickle.dump(act_label_decoder, open(ald_path, 'wb'))
+    pickle.dump(emotion_label_encoder, open(ele_path, 'wb'))
+    pickle.dump(emotion_label_decoder, open(eld_path, 'wb'))
+    pickle.dump(sentiment_label_encoder, open(sle_path, 'wb'))
+    pickle.dump(sentiment_label_decoder, open(sle_path, 'wb'))
 
     train_data['encoded_act_label'] = train_data['act_label'].map(lambda x: encode_labels(act_label_encoder, x))
     test_data['encoded_act_label'] = test_data['act_label'].map(lambda x: encode_labels(act_label_encoder, x))
@@ -162,8 +186,9 @@ if __name__ == '__main__':
     all_text = list(train_data['sentence'])
     tokenizer = Tokenizer()
     tokenizer.fit_on_texts(all_text)
-    pickle.dump(tokenizer, open('baseline/DialogueGCN/MELD_features/tokenizer.pkl', 'wb'))
-
+    
+    pickle.dump(tokenizer, open(os.path.join(conf["base_MELD_path"], "tokenizer.pkl") , 'wb'))
+    
     ## convert the sentences into sequences ##
     train_sequence = tokenizer.texts_to_sequences(list(train_data['sentence']))
     valid_sequence = tokenizer.texts_to_sequences(list(valid_data['sentence']))
@@ -201,10 +226,10 @@ if __name__ == '__main__':
         convSentimentLabels[item] = list(df['encoded_sentiment_label'])
 
     pickle.dump([convSpeakers, convInputSequence, convInputMaxSequenceLength, convActLabels, convEmotionLabels, convSentimentLabels,
-                 train_conv_ids, test_conv_ids, valid_conv_ids], open('baseline/DialogueGCN/MELD_features/MELD.pkl', 'wb'))
+                 train_conv_ids, test_conv_ids, valid_conv_ids], open(conf["data_MELD_path"], 'wb'))
 
     ## save pretrained embedding matrix ##
-    glv_vector = load_pretrained_glove()
+    glv_vector = load_pretrained_glove(conf["glove_path"])
     word_vector_length = len(glv_vector['the'])
     word_index = tokenizer.word_index
     inv_word_index = {v: k for k, v in word_index.items()}
@@ -216,6 +241,6 @@ if __name__ == '__main__':
             glv_embedding_matrix[j] = glv_vector[inv_word_index[j]]
         except KeyError:
             glv_embedding_matrix[j] = np.random.randn(word_vector_length) / 200
-
-    np.ndarray.dump(glv_embedding_matrix, open('baseline/DialogueGCN/MELD_features/glv_embedding_matrix2', 'wb'))
+    #
+    np.ndarray.dump(glv_embedding_matrix, open(os.path.join(conf["base_MELD_path"], "glv_embedding_matrix2"), 'wb'))
     print('Done. Completed preprocessing.')
