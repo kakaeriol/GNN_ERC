@@ -1,6 +1,11 @@
+import tensorflow as tf
+from tensorflow import keras
 import pandas as pd, numpy as np, pickle
 from keras.preprocessing.text import Tokenizer
 from keras.utils.data_utils import pad_sequences
+import pathlib
+import os
+from importlib.machinery import SourceFileLoader
 
 
 def preprocess_text(x):
@@ -39,11 +44,11 @@ def create_utterances(filename, split):
     return data
 
 
-def load_pretrained_glove():
+def load_pretrained_glove(glove_link):
     print("Loading GloVe model, this can take some time...")
     glv_vector = {}
     # Put your glove embedding path here
-    f = open('glove.6B.100d.txt', encoding='utf-8')
+    f = open(glove_link, encoding='utf-8')
 
     for line in f:
         values = line.split()
@@ -63,11 +68,22 @@ def encode_labels(encoder, l):
 
 
 if __name__ == '__main__':
+    # Adding sysconf path
+    curr_path = pathlib.Path().resolve()
+    sys_path = os.path.join(os.path.dirname(curr_path), "sysconf.py")
+    conf = (SourceFileLoader("sysconf", sys_path).load_module()).conf
+    # --- PATH --- 
+    train_json = os.path.join(conf["base_IEMOCAP_path"], "train.json")
+    test_json = os.path.join(conf["base_IEMOCAP_path"], "test.json")
+    valid_json = os.path.join(conf["base_IEMOCAP_path"], "valid.json")
+    # -- 
+    encoder_path =  os.path.join(conf["base_IEMOCAP_path"], "emotion_label_encoder.pkl")
+    decoder_path =  os.path.join(conf["base_IEMOCAP_path"], "emotion_label_decoder.pkl")
     # Your training data path
     # Data format is consistent with DialogueRNN
-    train_data = create_utterances('IEMOCAP_features/train.json', 'train')
-    valid_data = create_utterances('IEMOCAP_features/valid.json', 'valid')
-    test_data = create_utterances('IEMOCAP_features/test.json', 'test')
+    train_data = create_utterances(train_json, 'train')
+    valid_data = create_utterances(valid_json, 'valid')
+    test_data = create_utterances(test_json, 'test')
 
     ## encode the emotion and dialog act labels ##
     all_emotion_labels = set(train_data['emotion_label'])
@@ -81,8 +97,8 @@ if __name__ == '__main__':
         emotion_label_decoder[i] = label
         print(str(emotion_label_encoder[label]) + " " + str(emotion_label_decoder[i]))
 
-    pickle.dump(emotion_label_encoder, open('IEMOCAP_features/emotion_label_encoder.pkl', 'wb'))
-    pickle.dump(emotion_label_decoder, open('IEMOCAP_features/emotion_label_decoder.pkl', 'wb'))
+    pickle.dump(emotion_label_encoder, open(encoder_path, 'wb'))
+    pickle.dump(emotion_label_decoder, open(decoder_path, 'wb'))
 
     train_data['encoded_emotion_label'] = train_data['emotion_label'].map(
         lambda x: encode_labels(emotion_label_encoder, x))
@@ -95,7 +111,7 @@ if __name__ == '__main__':
     all_text = list(train_data['sentence'])
     tokenizer = Tokenizer()
     tokenizer.fit_on_texts(all_text)
-    pickle.dump(tokenizer, open('IEMOCAP_features/tokenizer.pkl', 'wb'))
+    pickle.dump(tokenizer, open(os.path.join(conf["base_IEMOCAP_path"], 'tokenizer.pkl'), 'wb'))
 
     ## convert the sentences into sequences ##
     train_sequence = tokenizer.texts_to_sequences(list(train_data['sentence']))
@@ -132,10 +148,10 @@ if __name__ == '__main__':
         convEmotionLabels[item] = list(df['encoded_emotion_label'])
 
     pickle.dump([convSpeakers, convInputSequence, convInputMaxSequenceLength, convEmotionLabels,
-                 train_conv_ids, test_conv_ids, valid_conv_ids], open('IEMOCAP_features/IEMOCAP_features.pkl', 'wb'))
+                 train_conv_ids, test_conv_ids, valid_conv_ids], open(conf["data_IEMOCAP_path"], 'wb'))
 
     ## save pretrained embedding matrix ##
-    glv_vector = load_pretrained_glove()
+    glv_vector = load_pretrained_glove(conf["glove_path"])
     word_vector_length = len(glv_vector['the'])
     word_index = tokenizer.word_index
     inv_word_index = {v: k for k, v in word_index.items()}
@@ -148,5 +164,5 @@ if __name__ == '__main__':
         except KeyError:
             glv_embedding_matrix[j] = np.random.randn(word_vector_length) / 200
 
-    np.ndarray.dump(glv_embedding_matrix, open('IEMOCAP_features/glv_embedding_matrix2', 'wb'))
+    np.ndarray.dump(glv_embedding_matrix, open(os.path.join(conf["base_IEMOCAP_path"], 'glv_embedding_matrix2'), 'wb'))
     print('Done. Completed preprocessing.')
