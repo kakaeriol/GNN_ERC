@@ -811,7 +811,7 @@ class GraphNetwork(torch.nn.Module):
     def forward(self, x, edge_index, edge_norm, edge_type, seq_lengths, umask, nodal_attn, avec):
         g = dgl.graph((edge_index[0], edge_index[1]))
         g.norm = edge_norm
-        out = self.conv1(g, node_features, edge_type)
+        out = self.conv1(g, x, edge_type)
         out = self.conv2(g, out)
         emotions = torch.cat([x, out], dim=-1)
         log_prob = classify_node_features(emotions, seq_lengths, umask, self.matchatt, self.linear, self.dropout, self.smax_fc, nodal_attn, avec, self.no_cuda)
