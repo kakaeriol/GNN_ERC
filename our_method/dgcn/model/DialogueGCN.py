@@ -8,7 +8,6 @@ from .graph_functions import batch_graphify
 from .graph_functions import create_graph
 from .RGT import RGTModel_Final_layer
 from .RGT import RGTModel
-from .Classifier import Classifier
 import dgcn
 log = dgcn.utils.get_logger()
 
@@ -28,15 +27,16 @@ class DialogueGCN(nn.Module):
         self.wp = args.wp
         self.wf = args.wf
         self.device = args.device
-        self.num_relation = 2**(args.n_speakers+1)
+        
         #
         self.rnn = SeqContext(u_dim, g_dim, args)
         self.edge_att = EdgeAtt(g_dim, args)
         # self.gtm = GTModel(tag_size, input_size= g_dim) ## adding if else here later
-        # self.gtm = RGTModel_Final_layer(tag_size, input_size= g_dim) #v00
-        self.gtm = RGTModel(num_relational=self.num_relation, input_size= g_dim) #v01
-        self.clf = Classifier(g_dim + self.hidden_size, self.hidden_size, tag_size, args)
-        # self.softmax = nn.LogSoftmax(dim=1)
+        if args.Rtype == 'Final':
+            self.gtm = RGTModel_Final_layer(tag_size, input_size= g_dim, args=args) #v00
+        elif args.Rtype == "MHA":
+            self.gtm = RGTModel(tag_size, input_size= g_dim, args=args) #v01
+        self.softmax = nn.LogSoftmax(dim=1)
         edge_type_to_idx = {}
         for j in range(args.n_speakers):
             for k in range(args.n_speakers):
@@ -51,21 +51,14 @@ class DialogueGCN(nn.Module):
             node_features, data["text_len_tensor"], data["speaker_tensor"], self.wp, self.wf,
             self.edge_type_to_idx, self.edge_att, self.device)
         graph_out = create_graph(node_features, edge_index, edge_norm, edge_type, self.device, self.pos_enc_size)
-        return node_features, graph_out
+        return graph_out
 
     def forward(self, data):
-        features, graph_out= self.get_rep(data)
-        rgt_out = self.gtm(graph_out, graph_out.ndata['feat'], graph_out.ndata['PE']) # Graph Transform
-        out = self.clf(torch.cat([features, rgt_out], dim=-1), data["text_len_tensor"])
-        return out
-    
-    def get_loss(self, data):
-        features, graph_out= self.get_rep(data)
-        rgt_out = self.gtm(graph_out, graph_out.ndata['feat'], graph_out.ndata['PE']) # Graph Transform
-        loss = self.clf.get_loss(torch.cat([features, rgt_out], dim=-1),
-                                 data["label_tensor"], data["text_len_tensor"])
-
-        return loss
+        graph_out= self.get_rep(data)
+        graph_out.data_length = data["text_len_tensor"] # use in case of MAH in last layer
+        out = self.gtm(graph_out, graph_out.ndata['feat'], graph_out.ndata['PE']) # Graph Transform
+        # out = torch.argmax(out, dim=-1)
+        return self.softmax(out)
 
 #     def loss(self, y_scores, y_labels):
 #         loss = nn.CrossEntropyLoss()(y_scores, y_labels)
