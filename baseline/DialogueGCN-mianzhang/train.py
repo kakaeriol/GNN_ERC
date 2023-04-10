@@ -72,7 +72,8 @@ if __name__ == "__main__":
                         normalize it to have the norm equal to max_grad_norm""")
     parser.add_argument("--drop_rate", type=float, default=0.5,
                         help="Dropout rate.")
-
+    parser.add_argument("--rnn", type=str, default="lstm",
+                        choices=["lstm", "gru", "transformer"], help="Type of RNN cell.")
     # Model parameters
     parser.add_argument("--wp", type=int, default=10,
                         help="Past context window size. Set wp to -1 to use all the past context.")

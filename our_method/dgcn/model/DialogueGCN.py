@@ -32,8 +32,10 @@ class DialogueGCN(nn.Module):
         self.rnn = SeqContext(u_dim, g_dim, args)
         self.edge_att = EdgeAtt(g_dim, args)
         # self.gtm = GTModel(tag_size, input_size= g_dim) ## adding if else here later
-        # self.gtm = RGTModel_Final_layer(tag_size, input_size= g_dim) #v00
-        self.gtm = RGTModel(tag_size, input_size= g_dim) #v01
+        if args.Rtype == 'Final':
+            self.gtm = RGTModel_Final_layer(tag_size, input_size= g_dim, args=args) #v00
+        elif args.Rtype == "MHA":
+            self.gtm = RGTModel(tag_size, input_size= g_dim, args=args) #v01
         self.softmax = nn.LogSoftmax(dim=1)
         edge_type_to_idx = {}
         for j in range(args.n_speakers):
@@ -53,6 +55,7 @@ class DialogueGCN(nn.Module):
 
     def forward(self, data):
         graph_out= self.get_rep(data)
+        graph_out.data_length = data["text_len_tensor"] # use in case of MAH in last layer
         out = self.gtm(graph_out, graph_out.ndata['feat'], graph_out.ndata['PE']) # Graph Transform
         # out = torch.argmax(out, dim=-1)
         return self.softmax(out)

@@ -11,7 +11,8 @@ from dgl.dataloading import GraphDataLoader
 from ogb.graphproppred import collate_dgl, DglGraphPropPredDataset, Evaluator
 from ogb.graphproppred.mol_encoder import AtomEncoder
 from tqdm import tqdm
-
+import dgcn
+log = dgcn.utils.get_logger()
 class MLP_layer(nn.Module):
     
     def __init__(self, input_dim, output_dim, L=2): # L = nb of hidden layers
@@ -98,14 +99,20 @@ class RGTModel_Final_layer(nn.Module):
         pos_enc_size=2,
         num_layers=8,
         num_heads=8,
+        args = None,
     ):
         super().__init__()
         self.embedding_h =  nn.Linear(input_size, hidden_size)#dgl.nn.GATConv(input_dim, hidden_size, num_heads=num_heads)
+        self.batchnorm1 = nn.BatchNorm1d(hidden_size)
         self.pos_linear = nn.Linear(pos_enc_size, hidden_size)
         self.layers = nn.ModuleList(
             [GTLayer(hidden_size, num_heads) for _ in range(num_layers)]
         )
+        self.last_layer = args.last_layer
         self.predictor = MLP_layer(hidden_size, out_size)
+        if args.last_layer == 'add_X':
+            self.linear1 = nn.Linear(input_size + hidden_size, hidden_size)
+            self.drop = nn.Dropout(args.drop_rate)
 
     def forward(self, g, X, pos_enc): ## Need to change to message function later!!
         """  
@@ -113,7 +120,7 @@ class RGTModel_Final_layer(nn.Module):
         N = g.num_nodes()
         h = self.embedding_h(X) + self.pos_linear(pos_enc)
         ll = []
-        h_out = torch.ones_like(h)
+        h_out = torch.zeros_like(h)
         edges = g.edges()
         edges_norm = g.edata['norm']
         for itype in g.edata['rel_type'].unique():
@@ -128,7 +135,12 @@ class RGTModel_Final_layer(nn.Module):
             for layer in self.layers:
                 hk = layer(A_k, hk)
             ll.append(hk) # <-- should we try the voting for each A instead of multiply!!!
-            h_out = h_out*hk ## instead of this one adding the concat layer
+            # h_out = h_out*hk ## instead of this one adding the concat layer
+            h_out = hk + h_out#self.batchnorm1(hk + h_out)
+        if self.last_layer == 'add_X':
+            h_out = torch.cat([X, h_out], dim=1)
+            h_out = self.linear1(h_out)
+            h_out = self.drop(h_out)
         return self.predictor(h_out)
     
 ### RELATIONAL IN GTLAYER AT MULTIHEAD LAYER
@@ -145,7 +157,7 @@ class RGTLayer(nn.Module):
 
     def forward(self, g, h):
         N = g.num_nodes()
-        h_out = torch.ones_like(h)
+        h_out = torch.zeros_like(h)
         ll = []
         edges = g.edges()
         edges_norm = g.edata['norm']
@@ -159,9 +171,8 @@ class RGTLayer(nn.Module):
             hk = h #torch.clone(h)
             hk = self.MHA(A_k, hk)
             ll.append(hk)
-            h_out = h_out*hk # need to change to linear layer later!
+            h_out = hk + h_out#self.batchnorm1(hk + h_out)
         h = self.batchnorm1(h + h_out)
-
         h2 = h
         h = self.FFN2(F.relu(self.FFN1(h)))
         h = h2 + h
@@ -179,6 +190,7 @@ class RGTModel(nn.Module):
         pos_enc_size=2,
         num_layers=8,
         num_heads=8,
+        args = None,
     ):
         super().__init__()
         self.embedding_h =  nn.Linear(input_size, hidden_size)#dgl.nn.GATConv(input_dim, hidden_size, num_heads=num_heads)
@@ -187,11 +199,50 @@ class RGTModel(nn.Module):
             [RGTLayer(hidden_size, num_heads) for _ in range(num_layers)]
         )
         self.predictor = MLP_layer(hidden_size, out_size)
-
+        self.last_layer = args.last_layer
+        if args.last_layer == 'add_X':
+            self.linear1 = nn.Linear(input_size + hidden_size, hidden_size)
+            self.drop = nn.Dropout(args.drop_rate)
+        elif args.last_layer == 'add_X_att':
+            self.linear1 = nn.Linear(input_size + hidden_size, hidden_size)
+            self.drop = nn.Dropout(args.drop_rate)
+            self.emotion_att = MaskedEmotionAtt(input_dim=input_size + hidden_size)
     def forward(self, g, X, pos_enc):
         indices = torch.stack(g.edges())
         N = g.num_nodes()
         h = self.embedding_h(X) + self.pos_linear(pos_enc)
         for layer in self.layers:
             h = layer(g, h)
+        if self.last_layer == 'add_X':
+            h = torch.cat([X, h], dim=1)
+            h = self.linear1(h)
+            h = self.drop(h)
+        elif self.last_layer == 'add_X_att':
+            h = torch.cat([X, h], dim=1)
+            h = self.emotion_att(h, g.data_length)
+            h = self.linear1(h)
+            h = self.drop(h)
         return self.predictor(h)
+    
+class MaskedEmotionAtt(nn.Module):
+
+    def __init__(self, input_dim):
+        super(MaskedEmotionAtt, self).__init__()
+        self.lin = nn.Linear(input_dim, input_dim)
+
+    def forward(self, h, text_len_tensor):
+        batch_size = text_len_tensor.size(0)
+        x = self.lin(h)  # [node_num, H]
+        ret = torch.zeros_like(h)
+        s = 0
+        for bi in range(batch_size):
+            cur_len = text_len_tensor[bi].item()
+            y = x[s: s + cur_len]
+            z = h[s: s + cur_len]
+            scores = torch.mm(z, y.t())  # [L, L]
+            probs = F.softmax(scores, dim=1)
+            out = z.unsqueeze(0) * probs.unsqueeze(-1)  # [1, L, H] x [L, L, 1] --> [L, L, H]
+            out = torch.sum(out, dim=1)  # [L, H]
+            ret[s: s + cur_len, :] = out
+            s += cur_len
+        return ret

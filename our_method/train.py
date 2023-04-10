@@ -6,6 +6,16 @@ import dgcn
 import sklearn
 import copy
 from tqdm import tqdm
+import pathlib
+import os
+from importlib.machinery import SourceFileLoader
+import time
+# curr_path = pathlib.Path().resolve()
+# curr_path=
+# sys_path = os.path.join(os.path.dirname(curr_path), "sysconf.py")
+sys_path="/home/n/nguyenpk/clone_gnn/GNN_ERC/sysconf.py"
+conf = (SourceFileLoader("sysconf", sys_path).load_module()).conf
+
 # torch.backends.cudnn.enabled=False # my setting having error
 # ----------------------------------------
 log = dgcn.utils.get_logger()
@@ -35,7 +45,9 @@ def main(args):
     if torch.cuda.is_available():
         generator = generator = torch.Generator('cuda').manual_seed(args.seed)
     else:
+        print("Because of package problem, this one is running on CPU")
         generator = torch.Generator().manual_seed(args.seed)
+        args.device="cpu"
     # load data
     log.debug("Loading data from '%s'." % args.data)
     data = dgcn.utils.load_pkl(args.data)
@@ -47,7 +59,7 @@ def main(args):
     testset = dgcn.Dataset(data["test"], args.batch_size)
 
     log.debug("Building model...")
-    model_file = "./save/model.pt"
+    model_file = conf["model_file"].format(args.Rtype+str(time.time()))
     model = dgcn.DialogueGCN(args).to(args.device)
     
     if not args.from_begin:
@@ -123,6 +135,7 @@ def main(args):
     log.info("[Dev set] [f1 {:.4f}]".format(dev_f1))
     test_f1 = evaluation(model, testset)
     log.info("[Test set] [f1 {:.4f}]".format(test_f1))
+    log.info("setting: last_layer, epoch, learning_rate, drop_rate, optimizer, weight_decay, f1: {}, {},{},{},{},{}".format(args.last_layer, args.epochs, args.learning_rate, args.drop_rate, args.optimizer, args.weight_decay, test_f1))
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="train.py")
@@ -166,6 +179,11 @@ if __name__ == "__main__":
                         help="Use class weights in nll loss.")
     parser.add_argument("--lossfunc", type=str, default="ntll",
                         choices=["entropy", "ntll"], help="Type of  Loss function")
+    parser.add_argument("--Rtype", type=str, default="MHA",
+                        choices=["Final", "MHA"], help="Type of  relation graph transform type")
+    
+    parser.add_argument("--last_layer", type=str, default="h",
+                        choices=["h", "add_X", "add_X_att"], help="If adding the last layer or not")
 
     # others
     parser.add_argument("--seed", type=int, default=24,
