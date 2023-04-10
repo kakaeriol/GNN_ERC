@@ -77,3 +77,4 @@ for session in all_sessions:
             with open('IEMOCAP_features/valid.json', 'a') as the_file:
                 to_write = {"fold":"valid","topic":"","dialogue":d}
                 the_file.write(json.dumps(to_write)+'\n')
+
