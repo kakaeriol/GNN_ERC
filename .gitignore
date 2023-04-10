@@ -3,7 +3,9 @@ data/
 */data/*
 */log/*
 */save/*
-*.ipynb
+*.ipynb*
+*.ipynb_checkpoints/
+*__pycache__
 data/
   
 baseline/DialogueGCN-mianzhang/dgcn/model/__pycache__/
