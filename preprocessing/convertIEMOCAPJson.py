@@ -61,7 +61,7 @@ for session in all_sessions:
     os.chdir(path_to_label)
     label_files = glob.glob('*.txt')
     assert len(sentence_files) == len(label_files)
-    for s, l in zip(sentence_files, label_files):
+    for s, l in zip(sentence_files, sentence_files):
         d = read_dialogues("/home/n/nguyenpk/IEMOCAP_full_release/"+session+"/dialog/transcriptions/"+s,"/home/n/nguyenpk/IEMOCAP_full_release/"+session+"/dialog/EmoEvaluation/"+l)
         p = np.random.uniform(0,1)
         os.chdir("/home/n/nguyenpk/CS6208/GNN_ERC/preprocessing/data_fts")
