@@ -6,7 +6,6 @@ from torch.autograd import Variable
 import numpy as np, itertools, random, copy, math
 import pickle
 
-
 class CNNFeatureExtractor(nn.Module):
     """
     Module from DialogueRNN
@@ -48,22 +47,22 @@ class CNNFeatureExtractor(nn.Module):
         features = features.permute(1, 0, 2)
 
         return features
-
 class SeqContext(nn.Module):
-    #cnn args: vocab_size, embedding_dim, output_size, filters, kernel_sizes, dropout, args
+
     def __init__(self, cnn_filters, cnn_kernel_sizes, cnn_dropout, u_dim, g_dim, args):
         super(SeqContext, self).__init__()
         
         self.input_size = u_dim
         self.hidden_dim = g_dim
+        self.model_type = args.rnn
         if args.rnn in ['lstm', 'gru']:
             
             glv_pretrained = pickle.load(open(args.pretrained_word_vectors, 'rb'))
             vocab_size, e_dim = glv_pretrained['embedding'].shape
-            print (self.vocab_size, self.e_dim, glv_pretrained['embedding'].shape) 
+            print (vocab_size, e_dim, glv_pretrained['embedding'].shape) 
             
             # output size of cnn layer is the input size of rnn
-            self.cnn_feat_extractor = CNNFeatureExtractor(vocab_size, embedding_dim, u_dim, cnn_filters,cnn_kernel_sizes,cnn_dropout, args)
+            self.cnn_feat_extractor = CNNFeatureExtractor(vocab_size, e_dim, u_dim, cnn_filters, cnn_kernel_sizes, cnn_dropout, args)
             self.cnn_feat_extractor.init_pretrained_embeddings_from_numpy(glv_pretrained['embedding'])  
             
             if args.rnn == "lstm":
@@ -76,8 +75,8 @@ class SeqContext(nn.Module):
                 
     def forward(self, text_len_tensor, textft, umask):
         
-        if args.rnn in ['lstm', 'gru']:
-            text_tensor = self.cnn(textft, umask)
+        if self.model_type in ("lstm", "gru"):
+            text_tensor = self.cnn_feat_extractor(textft, umask)
             
             packed = pack_padded_sequence(
                 text_tensor,

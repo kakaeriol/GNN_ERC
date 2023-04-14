@@ -57,12 +57,12 @@ class DialogueGCN(nn.Module):
         log.debug(self.edge_type_to_idx)
 
     def get_rep(self, data):
-        textf, qmask, umask, label, lengths = [d.to(self.device) for d in data] if self.device != 'cpu' else data[:]
+        textf, qmask, umask, label = [d.to(self.device) for d in data] if self.device != 'cpu' else data[:]
         # text len tensor = lengths
-#         lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in range(len(umask))
+        lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in range(len(umask))]
         # qmask = qmask.permute(1, 0) # change to #batch x L 
-        cnn_node_fts = self.cnn_feat_extractor(textf, umask)
-        node_features = self.rnn(lengths, cnn_node_fts) # [batch_size, mx_len, D_g]
+        # cnn_node_fts = self.cnn_feat_extractor(textf, umask)
+        node_features = self.rnn(lengths, textf, umask) # [batch_size, mx_len, D_g]
         features, edge_index, edge_norm, edge_type, edge_index_lengths = batch_graphify(
             node_features, lengths, qmask, self.wp, self.wf,
             self.edge_type_to_idx, self.edge_att, self.device)
@@ -78,9 +78,9 @@ class DialogueGCN(nn.Module):
         return out
 
     def get_loss(self, data):
-        textf, qmask, umask, label, lengths = [d.cuda() for d in data] if self.device != 'cpu' else data[:]
+        textf, qmask, umask, label = [d.cuda() for d in data] if self.device != 'cpu' else data[:]
         # text len tensor = lengths
-#         lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in range(len(umask))]
+        lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in range(len(umask))]
         graph_out, features = self.get_rep(data)
         loss = self.clf.get_loss(torch.cat([features, graph_out], dim=-1),
                                  label, lengths)
