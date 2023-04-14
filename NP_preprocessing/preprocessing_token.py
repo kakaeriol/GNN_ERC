@@ -103,9 +103,9 @@ class Preprocessing_Data_Token:
         glv_embedding_matrix = np.zeros((num_unique_words + 1, word_vector_length))
         for j in range(1, num_unique_words + 1):
             try:
-                glove_vector[j] = glove_vector[inv_word_index[j]]
+                glv_embedding_matrix[j] = glove_vector[inv_word_index[j]]
             except KeyError:
-                glove_vector[j] = np.random.randn(word_vector_length) / 200
+                glv_embedding_matrix[j] = np.random.randn(word_vector_length) / 200
         if output_file:
             pd.to_pickle({'tokenizer': self.tokenizer, 'embedding': glv_embedding_matrix}, output_file)
         self.glv_embedding_matrix = glv_embedding_matrix
