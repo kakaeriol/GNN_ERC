@@ -4,6 +4,7 @@ import os
 import numpy as np
 import re
 import pandas as pd
+import random
 class Daily_Dialog_preprocessing:
     """This class 
     just use to wrap up
@@ -184,9 +185,23 @@ class IEMOCAP_preprocessing:
             'M': 0, 
             'F': 1
         }
+        
+        self.map_emo_label_new = {
+            'hap':0, 
+            'sad':1, 
+            'neu':2, 
+            'ang':3, 
+            'exc':4, 
+            'fru':5,
+            'dis':6,
+            'oth':7,
+            'sur':8,
+            'fea':9,
+            'xxx':2 # 'xxx' is assumed to be neu 
+        }
         self.map_emo_label.update(map_label)
         
-    def create_IEMOCAP_from_pkl(self, pkl_file: str) ->dict:
+    def create_IEMOCAP_ffrom_pklrom_pkl(self, pkl_file: str) ->dict:
         """
         This function output the train, test, valid of the IEMOCAP DATA set 
             Input: 
@@ -215,6 +230,41 @@ class IEMOCAP_preprocessing:
         out_rs = {'train': train, 'dev': valid, 'test': test, 'train_idx': train_video,
                   'dev_idx':valid_video, 'test_idx':test, 'mapping_emo': self.map_emo_label}
         
+        return out_rs
+    
+    def split_IEMOCAP_base(self, input_data:dict, train_size=0.8, dev_size=0.1)->dict:
+        '''
+        split input data into train,dev,test dictionary
+        '''
+        
+        # convert label (e.g neu,frus,sur) to integer label first
+        input_data['emotions'] = [[self.map_emo_label_new[emotion_str] for emotion_str in dialogue_emotions] for dialogue_emotions in input_data['emotions']]
+        
+        # shuffle each conversation randomly
+        shuffle_all = list(zip(input_data['dailog_id'], input_data['conversation'], input_data['speakers'], input_data['emotions']))
+        #random.shuffle(shuffle_all)
+
+        # partition into train, dev, test
+        dialogue_id, conversation, speakers, label = zip(*shuffle_all)
+        num_data = len(dialogue_id)
+        assert num_data == len(conversation), "something wrong when splitting"
+        assert num_data == len(speakers), "something wrong when splitting"
+        assert num_data == len(label), "something wrong when splitting"
+        
+        # get correct size for each split
+        train_size = int(num_data * train_size)
+        dev_size = int(num_data * dev_size)
+        assert train_size + dev_size < num_data, "something wrong when splitting - test size is less than one"
+        
+        # split it
+        train = {'conversation': conversation[:train_size], 'speakers': speakers[:train_size], 'emotions': label[:train_size], 'dialogue_id': dialogue_id[:train_size]}
+        conversation = conversation[train_size:]
+        speakers = speakers[train_size:]
+        label = label[train_size:]
+        dialogue_id = dialogue_id[train_size:]
+        dev = {'conversation': conversation[:dev_size], 'speakers': speakers[:dev_size], 'emotions': label[:dev_size], 'dialogue_id': dialogue_id[:dev_size]}
+        test = {'conversation': conversation[dev_size:], 'speakers': speakers[dev_size:], 'emotions': label[dev_size:], 'dialogue_id': dialogue_id[dev_size:]}
+        out_rs = {'train': train, 'dev': dev, 'test': test, 'mapping_emo': self.map_emo_label_new}
         return out_rs
     
     def create_dataset_from_IEMOCAP_base(self, base_path:str)->dict:
@@ -291,4 +341,5 @@ class IEMOCAP_preprocessing:
                 assert len(uid) == len(emo), "Check the input {} {}".format(len(uid), len(emo))
 
         out = {'dailog_id': dailog_id, 'conversation': conversation, 'speakers':speakers, 'emotions':emotions}
+        out = self.split_IEMOCAP_base(out)
         return out
