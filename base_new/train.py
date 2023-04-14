@@ -10,9 +10,11 @@ log = dgcn.utils.get_logger()
 def main(args):
     dgcn.utils.set_seed(args.seed)
     if torch.cuda.is_available():
-        generator = torch.Generator('cuda').manual_seed(args.seed)
+        generator = generator = torch.Generator('cuda').manual_seed(args.seed)
     else:
+        print("Because of package problem, this one is running on CPU")
         generator = torch.Generator().manual_seed(args.seed)
+        args.device="cpu"
     # load data
     log.debug("Loading data from '%s'." % args.data)
     data = dgcn.utils.load_pkl(args.data)
