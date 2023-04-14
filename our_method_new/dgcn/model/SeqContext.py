@@ -56,15 +56,15 @@ class SeqContext(nn.Module):
         self.input_size = u_dim
         self.hidden_dim = g_dim
         self.model_type = args.rnn
+        glv_pretrained = pickle.load(open(args.pretrained_word_vectors, 'rb'))
+        vocab_size, e_dim = glv_pretrained['embedding'].shape
+#         print (vocab_size, e_dim, glv_pretrained['embedding'].shape) 
+
+        # output size of cnn layer is the input size of rnn
+        self.cnn_feat_extractor = CNNFeatureExtractor(vocab_size, e_dim, u_dim, cnn_filters,cnn_kernel_sizes,cnn_dropout, args)
+        self.cnn_feat_extractor.init_pretrained_embeddings_from_numpy(glv_pretrained['embedding'])  
+            
         if args.rnn in ['lstm', 'gru']:
-            
-            glv_pretrained = pickle.load(open(args.pretrained_word_vectors, 'rb'))
-            vocab_size, e_dim = glv_pretrained['embedding'].shape
-            print (vocab_size, e_dim, glv_pretrained['embedding'].shape) 
-            
-            # output size of cnn layer is the input size of rnn
-            self.cnn_feat_extractor = CNNFeatureExtractor(vocab_size, e_dim, u_dim, cnn_filters,cnn_kernel_sizes,cnn_dropout, args)
-            self.cnn_feat_extractor.init_pretrained_embeddings_from_numpy(glv_pretrained['embedding'])  
             
             if args.rnn == "lstm":
                 self.rnn = nn.LSTM(self.input_size, self.hidden_dim // 2, dropout=args.drop_rate,
@@ -78,8 +78,9 @@ class SeqContext(nn.Module):
             self.transformer_encoder = DialogueTransformer(self.input_size, self.hidden_dim, 1, 4, self.hidden_dim, args.drop_rate)
 
     def forward(self, text_len_tensor, textft, umask):
+        text_tensor = self.cnn_feat_extractor(textft, umask)
+        
         if self.model_type in ("lstm", "gru"):
-            text_tensor = self.cnn_feat_extractor(textft, umask)
             
             packed = pack_padded_sequence(
                 text_tensor,
@@ -96,5 +97,5 @@ class SeqContext(nn.Module):
             return rnn_out
         elif self.model_type == "transformer":
             # text_tensor should have shape (n, S, E) where n is batch size, S is sequence length, and E is the embedding size
-            transformer_out = self.transformer_encoder(textft, umask)
+            transformer_out = self.transformer_encoder(text_tensor)
             return transformer_out
