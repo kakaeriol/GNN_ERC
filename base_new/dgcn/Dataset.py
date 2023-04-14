@@ -63,18 +63,22 @@ class my_DataSet(Dataset):
     """
     """
     def __init__(self, path , split, num_speaker=2):
-        data = pd.read_pickle(path)
+        # data = pd.read_pickle(path)
+        pickle = load(open(path, 'rb'))
         data = data[split]
         self.feature = data["data_token"]
+        self.text_len = [len(i) for i in self.feature]
         self.speaker = data["speakers"]
         self.num_speaker = num_speaker
         self.labels  = data["emotions"]
         self.len = len(data["data_token"])
     def __getitem__(self, index):
+        # return: text_tensor, speaker_tensor, conv_len_mask, label_tensor
         return torch.LongTensor(self.feature[index]), \
             torch.FloatTensor(self.speaker[index]), \
             torch.FloatTensor([1]*len(self.labels[index])), \
-            torch.LongTensor(self.labels[index])
+            torch.LongTensor(self.labels[index]),\
+            torch.LongTensor(self.text_len[index])
     
     def __len__(self):
         return self.len

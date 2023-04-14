@@ -17,8 +17,8 @@ class DialogueGCN(nn.Module):
 
     def __init__(self, args):
         super(DialogueGCN, self).__init__()
-        self.vocab_size = -1
-        self.e_dim = 300
+#         self.vocab_size = -1
+#         self.e_dim = 300
         u_dim = 100
         g_dim = 200
         h1_dim = 100
@@ -35,17 +35,19 @@ class DialogueGCN(nn.Module):
         self.wf = args.wf
         self.device = args.device
         
-        glv_pretrained = pickle.load(open(args.pretrained_word_vectors, 'rb'))
-        self.vocab_size, self.e_dim = glv_pretrained['embedding'].shape
-        print (self.vocab_size, self.e_dim, glv_pretrained['embedding'].shape) 
-        self.cnn_feat_extractor = CNNFeatureExtractor(self.vocab_size, self.e_dim, u_dim, cnn_filters,cnn_kernel_sizes,cnn_dropout, args)
-        self.cnn_feat_extractor.init_pretrained_embeddings_from_numpy(glv_pretrained['embedding'])        
+#         glv_pretrained = pickle.load(open(args.pretrained_word_vectors, 'rb'))
+#         glv_pretrained = pd.read_pickle(args.pretrained_word_vectors)
+
+#         self.vocab_size, self.e_dim = glv_pretrained['embedding'].shape
+#         print (self.vocab_size, self.e_dim, glv_pretrained['embedding'].shape) 
+#         self.cnn_feat_extractor = CNNFeatureExtractor(self.vocab_size, self.e_dim, u_dim, cnn_filters,cnn_kernel_sizes,cnn_dropout, args)
+#         self.cnn_feat_extractor.init_pretrained_embeddings_from_numpy(glv_pretrained['embedding'])        
         
-        self.rnn = SeqContext(u_dim, g_dim, args)
+        self.rnn = SeqContext(cnn_filters, cnn_kernel_sizes, cnn_dropout, u_dim, g_dim, args)
+        
         self.edge_att = EdgeAtt(g_dim, args)
         self.gcn = GCN(g_dim, h1_dim, h2_dim, args)
         self.clf = Classifier(g_dim + h2_dim, hc_dim, tag_size, args)
-        glv_pretrained = pd.read_pickle(args.pretrained_word_vectors)
         edge_type_to_idx = {}
         for j in range(args.n_speakers):
             for k in range(args.n_speakers):
@@ -55,9 +57,9 @@ class DialogueGCN(nn.Module):
         log.debug(self.edge_type_to_idx)
 
     def get_rep(self, data):
-        textf, qmask, umask, label = [d.to(self.device) for d in data] if self.device != 'cpu' else data[:]
+        textf, qmask, umask, label, lengths = [d.to(self.device) for d in data] if self.device != 'cpu' else data[:]
         # text len tensor = lengths
-        lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in range(len(umask))]
+#         lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in range(len(umask))
         # qmask = qmask.permute(1, 0) # change to #batch x L 
         cnn_node_fts = self.cnn_feat_extractor(textf, umask)
         node_features = self.rnn(lengths, cnn_node_fts) # [batch_size, mx_len, D_g]
@@ -76,9 +78,9 @@ class DialogueGCN(nn.Module):
         return out
 
     def get_loss(self, data):
-        textf, qmask, umask, label = [d.cuda() for d in data] if self.device != 'cpu' else data[:]
+        textf, qmask, umask, label, lengths = [d.cuda() for d in data] if self.device != 'cpu' else data[:]
         # text len tensor = lengths
-        lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in range(len(umask))]
+#         lengths = [(umask[j] == 1).nonzero().tolist()[-1][0] + 1 for j in range(len(umask))]
         graph_out, features = self.get_rep(data)
         loss = self.clf.get_loss(torch.cat([features, graph_out], dim=-1),
                                  label, lengths)

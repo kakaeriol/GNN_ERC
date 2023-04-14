@@ -12,7 +12,9 @@ def main(args):
     if torch.cuda.is_available():
         generator = generator = torch.Generator('cuda').manual_seed(args.seed)
     else:
-        print("Because of package problem, this one is running on CPU")
+
+        print("ERROR LOADING CUDA, USING CPU")
+        args.device = "cpu"
         generator = torch.Generator().manual_seed(args.seed)
         args.device="cpu"
     # load data
@@ -47,7 +49,7 @@ def main(args):
                              )
 
     log.debug("Building model...")
-    model_file = "./save/model.pt"
+    model_file = "./save/model_{}.pt".format(args.data.split('/')[-1][:len('token_fts.pkl')])
     model = dgcn.DialogueGCN(args).to(args.device)
     opt = dgcn.Optim(args.learning_rate, args.max_grad_value, args.weight_decay)
     opt.set_parameters(model.parameters(), args.optimizer)
