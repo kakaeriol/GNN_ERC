@@ -198,51 +198,12 @@ class RGTModel(nn.Module):
         self.layers = nn.ModuleList(
             [RGTLayer(hidden_size, num_heads) for _ in range(num_layers)]
         )
-        self.predictor = MLP_layer(hidden_size, out_size)
-        self.last_layer = args.last_layer
-        if args.last_layer == 'add_X':
-            self.linear1 = nn.Linear(input_size + hidden_size, hidden_size)
-            self.drop = nn.Dropout(args.drop_rate)
-        elif args.last_layer == 'add_X_att':
-            self.linear1 = nn.Linear(input_size + hidden_size, hidden_size)
-            self.drop = nn.Dropout(args.drop_rate)
-            self.emotion_att = MaskedEmotionAtt(input_dim=input_size + hidden_size)
+        # self.predictor = MLP_layer(hidden_size, out_size)
+        
     def forward(self, g, X, pos_enc):
         indices = torch.stack(g.edges())
         N = g.num_nodes()
         h = self.embedding_h(X) + self.pos_linear(pos_enc)
         for layer in self.layers:
             h = layer(g, h)
-        if self.last_layer == 'add_X':
-            h = torch.cat([X, h], dim=1)
-            h = self.linear1(h)
-            h = self.drop(h)
-        elif self.last_layer == 'add_X_att':
-            h = torch.cat([X, h], dim=1)
-            h = self.emotion_att(h, g.data_length)
-            h = self.linear1(h)
-            h = self.drop(h)
-        return self.predictor(h)
-    
-class MaskedEmotionAtt(nn.Module):
-
-    def __init__(self, input_dim):
-        super(MaskedEmotionAtt, self).__init__()
-        self.lin = nn.Linear(input_dim, input_dim)
-
-    def forward(self, h, text_len_tensor):
-        batch_size = text_len_tensor.size(0)
-        x = self.lin(h)  # [node_num, H]
-        ret = torch.zeros_like(h)
-        s = 0
-        for bi in range(batch_size):
-            cur_len = text_len_tensor[bi].item()
-            y = x[s: s + cur_len]
-            z = h[s: s + cur_len]
-            scores = torch.mm(z, y.t())  # [L, L]
-            probs = F.softmax(scores, dim=1)
-            out = z.unsqueeze(0) * probs.unsqueeze(-1)  # [1, L, H] x [L, L, 1] --> [L, L, H]
-            out = torch.sum(out, dim=1)  # [L, H]
-            ret[s: s + cur_len, :] = out
-            s += cur_len
-        return ret
+        return h

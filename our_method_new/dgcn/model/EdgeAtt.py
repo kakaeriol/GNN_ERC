@@ -2,6 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import dgcn
+
+log = dgcn.utils.get_logger()
+
+
 class EdgeAtt(nn.Module):
 
     def __init__(self, g_dim, args):
@@ -29,7 +34,23 @@ class EdgeAtt(nn.Module):
                 tmp = att_matrix[i, s: e + 1, :]  # [L', D_g]
                 feat = node_features[i, j]  # [D_g]
                 score = torch.matmul(tmp, feat)
-                probs = F.softmax(score, dim=0)  # [L']
+                probs = F.softmax(score)  # [L']
                 alpha[j, s: e + 1] = probs
             alphas.append(alpha)
+
         return alphas
+
+# class EdgeAtt(nn.Module):
+#
+#     def __init__(self, g_dim, args):
+#         super(EdgeAtt, self).__init__()
+#         self.device = args.device
+#         self.wp = args.wp
+#         self.wf = args.wf
+#         self.lin = nn.Linear(g_dim, 110)
+#
+#     def forward(self, node_features, text_len_tensor, edge_ind):
+#         h = self.lin(node_features)  # [B, L, mx]
+#         alphas = F.softmax(h, dim=-1)
+#         # alphas = torch.ones((node_features.size(0), node_features.size(1), 110))
+#         return alphas
