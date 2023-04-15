@@ -100,7 +100,11 @@ if __name__ == "__main__":
                         help="Dropout rate.")
     parser.add_argument("--rnn", type=str, default="lstm",
                         choices=["lstm", "gru", "transformer"], help="Type of RNN cell.")
+    parser.add_argument("--lossfunc", type=str, default='nll',
+                        help=" possible losses: entropy, nll.")
     # Model parameters
+    
+    
     parser.add_argument("--wp", type=int, default=10,
                         help="Past context window size. Set wp to -1 to use all the past context.")
     parser.add_argument("--wf", type=int, default=10,

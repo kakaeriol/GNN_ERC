@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import math
+import torch.nn.functional as F
 
 class DialogueTransformer(nn.Module):
     def __init__(self, input_size, embedding_size, num_layers, num_heads, hidden_size, dropout):
@@ -14,17 +15,17 @@ class DialogueTransformer(nn.Module):
         
         self.transformer_layers = nn.ModuleList([TransformerEncoderLayer(embedding_size, num_heads, hidden_size, dropout) for _ in range(num_layers)])
         
-    def forward(self, inputs):
+    def forward(self, inputs, umask):
         inp = self.embedding_layer1(inputs)
         x = self.positional_encoding(inp)
         
         for layer in self.transformer_layers:
-            x = layer(x)
+            x = layer(x, umask)
         
         return x
     
 class PositionalEncoding(nn.Module):
-    def __init__(self, embedding_size, dropout, max_len=5000):
+    def __init__(self, embedding_size, dropout, max_len=250):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
         
@@ -43,7 +44,7 @@ class PositionalEncoding(nn.Module):
 class TransformerEncoderLayer(nn.Module):
     def __init__(self, embedding_size, num_heads, hidden_size, dropout):
         super().__init__()
-        self.self_attn = nn.MultiheadAttention(embedding_size, num_heads, dropout=dropout)
+        self.self_attn = nn.MultiheadAttention(embedding_size, num_heads, dropout=dropout,batch_first=True)
         self.feed_forward = nn.Sequential(
             nn.Linear(embedding_size, hidden_size),
             nn.ReLU(),
@@ -54,10 +55,16 @@ class TransformerEncoderLayer(nn.Module):
         self.norm2 = nn.LayerNorm(embedding_size)
         self.dropout = nn.Dropout(p=dropout)
         
-    def forward(self, x):
+    def forward(self, x, umask):
         residual = x
         x = self.norm1(x)
-        x, _ = self.self_attn(x, x, x)
+        key_padding_mask = umask != 1 # (BS * num_utt)
+        att_mask = torch.tril(torch.ones((umask.shape[1], umask.shape[1]))).to(x.device) # num_utt * num_utt
+        x, _ = self.self_attn(x, x, x,key_padding_mask=key_padding_mask)
+        x, _ = self.self_attn(x, x, x,key_padding_mask=key_padding_mask, attn_mask=att_mask)
+        x = F.softmax(x, dim=-1)
+        
+        # multiply with a 
         x = self.dropout(x)
         x = residual + x
 

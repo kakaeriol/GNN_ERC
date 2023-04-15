@@ -46,8 +46,9 @@ class CNNFeatureExtractor(nn.Module):
         mask = mask.to(self.device)
         features = (features * mask)  # (num_utt, batch, 100) -> (num_utt, batch, 100)
         features = features.permute(1, 0, 2)
-
         return features
+    
+
 class SeqContext(nn.Module):
 
     def __init__(self, cnn_filters, cnn_kernel_sizes, cnn_dropout, u_dim, g_dim, args):
@@ -72,7 +73,7 @@ class SeqContext(nn.Module):
                 self.rnn = nn.GRU(self.input_size, self.hidden_dim // 2, dropout=args.drop_rate,
                                   bidirectional=True, num_layers=2, batch_first=True)
         elif args.rnn == 'transformer':
-            self.transformer_encoder = DialogueTransformer(self.input_size, self.hidden_dim, 1, 4, self.hidden_dim, args.drop_rate)
+            self.transformer_encoder = DialogueTransformer(self.input_size, self.hidden_dim,num_layers=1, num_heads=4, hidden_size=self.hidden_dim, dropout=args.drop_rate)
 
 
                 
@@ -95,7 +96,7 @@ class SeqContext(nn.Module):
         elif self.model_type == "transformer":
             text_tensor = self.cnn_feat_extractor(textft, umask)
             # text_tensor should have shape (n, S, E) where n is batch size, S is sequence length, and E is the embedding size
-            transformer_out = self.transformer_encoder(text_tensor)
+            transformer_out = self.transformer_encoder(text_tensor, umask)
             return transformer_out
 
-            return rnn_out
+        return rnn_out

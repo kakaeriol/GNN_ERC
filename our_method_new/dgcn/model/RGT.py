@@ -147,13 +147,16 @@ class RGTModel_Final_layer(nn.Module):
 class RGTLayer(nn.Module):
     """Graph Transformer Layer"""
 
-    def __init__(self, hidden_size=80, num_heads=8):
+    def __init__(self, hidden_size=80, num_heads=8,num_rel_types=8):
         super().__init__()
         self.MHA = SparseMHA(hidden_size=hidden_size, num_heads=num_heads)
         self.batchnorm1 = nn.BatchNorm1d(hidden_size)
         self.batchnorm2 = nn.BatchNorm1d(hidden_size)
         self.FFN1 = nn.Linear(hidden_size, hidden_size * 2)
         self.FFN2 = nn.Linear(hidden_size * 2, hidden_size)
+        self.num_rel_types = num_rel_types
+        
+        self.weighted_sum = nn.Linear(self.num_rel_types, 1)
 
     def forward(self, g, h):
         N = g.num_nodes()
@@ -170,9 +173,17 @@ class RGTLayer(nn.Module):
             A_k =  dglsp.spmatrix(indices, shape=(N, N))
             hk = h #torch.clone(h)
             hk = self.MHA(A_k, hk)
+#             print (hk.shape)
             ll.append(hk)
             h_out = hk + h_out#self.batchnorm1(hk + h_out)
-        h = self.batchnorm1(h + h_out)
+            
+        h_concat = torch.stack(ll, dim=1).permute(0, 2, 1)
+#         print ( h_concat.shape)
+    
+        # Calculate the weighted sum of `hk` using the `weighted_sum` linear layer
+        weighted_sum_hk = self.weighted_sum(h_concat).squeeze(2)
+        
+        h = self.batchnorm1(h + weighted_sum_hk)
         h2 = h
         h = self.FFN2(F.relu(self.FFN1(h)))
         h = h2 + h
@@ -196,7 +207,7 @@ class RGTModel(nn.Module):
         self.embedding_h =  nn.Linear(input_size, hidden_size)#dgl.nn.GATConv(input_dim, hidden_size, num_heads=num_heads)
         self.pos_linear = nn.Linear(pos_enc_size, hidden_size)
         self.layers = nn.ModuleList(
-            [RGTLayer(hidden_size, num_heads) for _ in range(num_layers)]
+            [RGTLayer(hidden_size, num_heads, num_rel_types=2 * args.n_speakers * args.n_speakers) for _ in range(num_layers)]
         )
         # self.predictor = MLP_layer(hidden_size, out_size)
         

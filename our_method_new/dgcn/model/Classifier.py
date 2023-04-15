@@ -14,12 +14,20 @@ class Classifier(nn.Module):
         self.lin1 = nn.Linear(input_dim, hidden_size)
         self.drop = nn.Dropout(args.drop_rate)
         self.lin2 = nn.Linear(hidden_size, tag_size)
+        if args.lossfunc == 'entropy':
+            loss_fcn = nn.CrossEntropyLoss()
+        else:
+            loss_fcn =  nn.NLLLoss()
+        
         if args.class_weight:
             self.loss_weights = torch.tensor([1 / 0.086747, 1 / 0.144406, 1 / 0.227883,
                                               1 / 0.160585, 1 / 0.127711, 1 / 0.252668]).to(args.device)
-            self.nll_loss = nn.NLLLoss(self.loss_weights)
+            if args.lossfunc == 'entropy':
+                self.nll_loss = nn.CrossEntropyLoss(self.loss_weights)
+            else:
+                self.nll_loss =  nn.NLLLoss(self.loss_weights)
         else:
-            self.nll_loss = nn.NLLLoss()
+            self.nll_loss = loss_fcn
 
     def get_prob(self, h, text_len_tensor):
         # h_hat = self.emotion_att(h, text_len_tensor)
