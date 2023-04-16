@@ -181,9 +181,9 @@ class RGTLayer(nn.Module):
                 hk = torch.zeros_like(h)
             ll.append(hk)
             h_out = hk + h_out#self.batchnorm1(hk + h_out)
-        print(h_out.shape)    
+        #print(h_out.shape)    
         h_concat = torch.stack(ll, dim=1).permute(0, 2, 1)
-        print ("stack:", h_concat.shape)
+        #print ("stack:", h_concat.shape)
     
         # Calculate the weighted sum of `hk` using the `weighted_sum` linear layer
         weighted_sum_hk = self.weighted_sum(h_concat).squeeze(2)
