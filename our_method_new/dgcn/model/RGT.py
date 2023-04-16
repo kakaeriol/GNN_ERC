@@ -199,7 +199,7 @@ class RGTModel(nn.Module):
         input_size=200, # g_dim
         hidden_size=80,
         pos_enc_size=2,
-        num_layers=8,
+        num_layers=3,
         num_heads=8,
         args = None,
     ):

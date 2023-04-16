@@ -33,7 +33,8 @@ class DialogueGCN(nn.Module):
         cnn_dropout=0.5
         ## GT layer 
         self.hidden_size = 80
-        self.pos_enc_size = 2
+#         self.pos_enc_size = 2
+        self.pos_enc_size = 8
         self.num_layer = 5
         self.num_headers = 8
         
@@ -43,7 +44,7 @@ class DialogueGCN(nn.Module):
         self.rnn = SeqContext(cnn_filters, cnn_kernel_sizes, cnn_dropout, u_dim, g_dim, args)
         
         self.edge_att = EdgeAtt(g_dim, args)
-        self.gtm = RGTModel(tag_size, input_size = g_dim, hidden_size = self.hidden_size, args = args)
+        self.gtm = RGTModel(tag_size, input_size = g_dim, hidden_size = self.hidden_size, num_layers=self.num_layer, pos_enc_size=self.pos_enc_size,  args = args)
         self.clf = Classifier(g_dim + self.hidden_size, hc_dim, tag_size, args)
         edge_type_to_idx = {}
         for j in range(args.n_speakers):
