@@ -34,8 +34,8 @@ class DialogueGCN(nn.Module):
         ## GT layer 
         self.hidden_size = 80
 #         self.pos_enc_size = 2
-        self.pos_enc_size = 8
-        self.num_layer = 5
+        self.pos_enc_size = 2
+        self.num_layer = 3
         self.num_headers = 8
         
         self.wp = args.wp

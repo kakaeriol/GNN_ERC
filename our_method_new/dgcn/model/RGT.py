@@ -164,21 +164,26 @@ class RGTLayer(nn.Module):
         ll = []
         edges = g.edges()
         edges_norm = g.edata['norm']
-        for itype in g.edata['rel_type'].unique():
+#         for itype in g.edata['rel_type'].unique():
+        for itype in range(self.num_rel_types):
+            
             src = edges[0][g.edata['rel_type'] == itype]
             des = edges[1][g.edata['rel_type'] == itype]
             val = edges_norm[g.edata['rel_type'] == itype]
-            # ---
-            indices = torch.stack((src, des))
-            A_k =  dglsp.spmatrix(indices, shape=(N, N))
-            hk = h #torch.clone(h)
-            hk = self.MHA(A_k, hk)
-#             print (hk.shape)
+            if len(src)  != 0:
+                # ---
+                indices = torch.stack((src, des))
+                A_k =  dglsp.spmatrix(indices, shape=(N, N))
+                hk = h #torch.clone(h)
+                hk = self.MHA(A_k, hk)
+    #             print (hk.shape)
+            else: 
+                hk = torch.zeros_like(h)
             ll.append(hk)
             h_out = hk + h_out#self.batchnorm1(hk + h_out)
-            
+        print(h_out.shape)    
         h_concat = torch.stack(ll, dim=1).permute(0, 2, 1)
-#         print ( h_concat.shape)
+        print ("stack:", h_concat.shape)
     
         # Calculate the weighted sum of `hk` using the `weighted_sum` linear layer
         weighted_sum_hk = self.weighted_sum(h_concat).squeeze(2)
