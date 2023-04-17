@@ -1,0 +1,61 @@
+Namespace(no_cuda=True, base_model='LSTM', graph_model=True, nodal_attention=False, windowp=10, windowf=10, lr=0.0003, l2=1e-05, rec_dropout=0.1, dropout=0.45, batch_size=32, epochs=50, class_weight=False, active_listener=False, attention='general', tensorboard=False)
+Running on CPU
+INIT MODEL
+Graph NN with LSTM as base model.
+/home/n/nguyenpk/CS6208/GNN_ERC/baseline/DialogueGCN/dataloader.py:174: UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider converting the list to a single numpy.ndarray with numpy.array() before converting to a tensor. (Triggered internally at  /opt/conda/conda-bld/pytorch_1659484808560/work/torch/csrc/utils/tensor_new.cpp:201.)
+  return torch.FloatTensor(self.Features[conv]), \
+Shape of input_seq torch.Size([16, 32, 100])
+Shape of umask tensor([[1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
+        [1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+        [1., 1., 1., 1., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])
+Traceback (most recent call last):
+  File "/home/n/nguyenpk/CS6208/GNN_ERC/baseline/DialogueGCN/train_DailyDialog.py", line 354, in <module>
+    train_loss, train_acc, _, _, train_fscore, _, _, _, _, _, train_precision, train_recall = train_or_eval_graph_model(
+  File "/home/n/nguyenpk/CS6208/GNN_ERC/baseline/DialogueGCN/train_DailyDialog.py", line 140, in train_or_eval_graph_model
+    log_prob, e_i, e_n, e_t, e_l = model(textf, qmask, umask, lengths)
+  File "/home/n/nguyenpk/miniconda3/envs/graph_transform_tf/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1130, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/n/nguyenpk/CS6208/GNN_ERC/baseline/DialogueGCN/model.py", line 1047, in forward
+    U = self.cnn_feat_extractor(input_seq, umask)
+  File "/home/n/nguyenpk/miniconda3/envs/graph_transform_tf/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1130, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/n/nguyenpk/CS6208/GNN_ERC/baseline/DialogueGCN/model.py", line 952, in forward
+    convoluted = [F.relu(conv(emb)) for conv in self.convs]
+  File "/home/n/nguyenpk/CS6208/GNN_ERC/baseline/DialogueGCN/model.py", line 952, in <listcomp>
+    convoluted = [F.relu(conv(emb)) for conv in self.convs]
+  File "/home/n/nguyenpk/miniconda3/envs/graph_transform_tf/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1130, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/n/nguyenpk/miniconda3/envs/graph_transform_tf/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 307, in forward
+    return self._conv_forward(input, self.weight, self.bias)
+  File "/home/n/nguyenpk/miniconda3/envs/graph_transform_tf/lib/python3.10/site-packages/torch/nn/modules/conv.py", line 303, in _conv_forward
+    return F.conv1d(input, weight, bias, self.stride,
+RuntimeError: Given groups=1, weight of size [50, 300, 3], expected input[512, 100, 100] to have 300 channels, but got 100 channels instead
