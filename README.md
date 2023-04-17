@@ -3,7 +3,7 @@
 In this project, based on the DialogueGCN  [[1]](#1), we proposed new flows the have better performance than the original paper. 
 
 In the DialogGCN, their flow is as show in the below image
-![GCN](https://user-images.githubusercontent.com/16068098/232379652-ea5764af-b3d5-49e4-81aa-e89d644e6d8d.png)
+![GCN drawio](https://user-images.githubusercontent.com/16068098/232380690-e7ecb8a5-4419-4b92-a159-90ddc51d1bf1.png)
 
 In our methods, we changed the sequence context to Transformer, and RGCN to Relational Graph Transform, which better generalize and have global information. 
 
