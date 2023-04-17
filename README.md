@@ -10,7 +10,10 @@ In our methods, we changed the sequence context to Transformer, and RGCN to Rela
 
 ![RGT](https://user-images.githubusercontent.com/16068098/232379831-352d43c3-2e8e-4c27-af18-50948ddf8421.png)
 
-In our methods, Relational Graph Tranformer having the same properties as Graph Transformer Architecture [[2]](#2)
+In our methods, Relational Graph Tranformer having the same properties as Graph Transformer Architecture [[2]](#2) but include the information of the relation after multiheader layer 
+
+![image](https://user-images.githubusercontent.com/16068098/232381202-79548802-01bb-4649-a3f0-c39bbfa02ad7.png)
+
 
 For the coding, we use DGL library [[3]](#3)
 
