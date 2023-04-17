@@ -17,7 +17,7 @@ For the coding, we use DGL library [[3]](#3)
 ## Reference
 
 <a id = "1">[1]</a>
-eepanway Ghosal, Navonil Majumder, Soujanya Poria, Niyati Chhaya,
+Deepanway Ghosal, Navonil Majumder, Soujanya Poria, Niyati Chhaya,
 and Alexander Gelbukh. Dialoguegcn: A graph convolutional neural
 network for emotion recognition in conversation. In Proceedings of
 the 2019 Conference on Empirical Methods in Natural Language
@@ -30,6 +30,6 @@ Language Processing (EMNLP-IJCNLP), pages 154–164, 2019. <br>
   author={Dwivedi, Vijay Prakash and Bresson, Xavier},
   journal={AAAI Workshop on Deep Learning on Graphs: Methods and Applications},
   year={2021}
-}
+}</br>
 <a id = "3">[3]</a>
 https://www.dgl.ai/
