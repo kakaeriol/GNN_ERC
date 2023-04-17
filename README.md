@@ -1,4 +1,4 @@
-# Emotion Recognition In Conversation with Transformer and Relational Graph Transformer
+# Emotion Recognition In Conversation with <br> Transformer and Relational Graph Transformer
 
 In this project, based on the DialogueGCN  [[1]](#1), we proposed new flows the have better performance than the original paper. 
 
