@@ -18,6 +18,8 @@ In our methods, Relational Graph Tranformer having the same properties as Graph 
 For the coding, we use DGL library [[3]](#3)
 - The full raw dataset here: https://drive.google.com/drive/u/2/folders/1LFd3KbxhwxSrth6MqKlIa-uB-iskvSwZ </br>
 - The data after preprocesssing here: https://drive.google.com/drive/u/2/folders/1js4MoIQDYPSa62DpwwGsyJyt3oV4cN7n </br>
+
+
 If you want to check the process of preprocessing data, extract the raw data in the folder and check change the path in sysconf and run the script in preprocessing folder
 
 If you want to recheck the training without preprocessing steps, please download the full preprocessing data as the link above, extract and change the path in sysconf folder. After that enter our_method folder or base_line folder and try to run the code.
